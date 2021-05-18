@@ -353,5 +353,21 @@ namespace GLTools
             Ellipse elli = new Ellipse(center, Vector3d.ZAxis, majorVector, ratio, 0, 2 * Math.PI);
             return db.AddEntityToModeSpace(elli);
         }
+
+        /// <summary>
+        /// 添加文字
+        /// </summary>
+        /// <param name="db"></param>
+        /// <param name="point0">文字起始点</param>
+        /// <param name="height0">文字高度</param>
+        /// <param name="str0">文字内容</param>
+        public static ObjectId AddTextToModeSpace(this Database db, Point3d point0, double height0, string str0)
+        {
+            DBText text0 = new DBText();
+            text0.Position = point0;
+            text0.Height = height0;
+            text0.TextString = str0;
+            return db.AddEntityToModeSpace(text0);
+        }
     }
 }
