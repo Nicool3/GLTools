@@ -87,19 +87,14 @@ namespace GLTools
             {
                 // 打开文字样式表
                 TextStyleTable tst = (TextStyleTable)trans.GetObject(db.TextStyleTableId, OpenMode.ForRead);
-                ObjectId tsId = ObjectId.Null;
-
-                string message = string.Empty;
-                if (!tst.Has(TextStyleName))
-                {
-                    
-                }
-                else
-                    tsId = tst[TextStyleName];
-
-                TextStyleTableRecord tstr = (TextStyleTableRecord)trans.GetObject(tsId, OpenMode.ForRead);
-                trans.AddNewlyCreatedDBObject(tstr, true);
-
+                //如果不存在名为styleName的文字样式，则返回
+                if (!tst.Has(TextStyleName)) return;
+                //获取名为styleName的的文字样式表记录的Id
+                ObjectId tsId = tst[TextStyleName];
+                //如果指定的文字样式为当前文字样式，则返回
+                if (db.Textstyle == tsId) return;
+                //指定当前文字样式
+                db.Textstyle = tsId;
                 // 提交事务
                 trans.Commit();
             }
