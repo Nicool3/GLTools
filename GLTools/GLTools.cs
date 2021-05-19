@@ -29,6 +29,7 @@ namespace GLTools
             P0 = ed.GetPointOnScreen("请指定圆心: ");
 
             db.AddCircleModeSpace(P0, 100);
+            db.SetTextStyleCurrent("SMEDI");
             db.AddTextToModeSpace(P0, 3.5, "DN1000");
             ed.WriteMessage("\n绘制完成");
 

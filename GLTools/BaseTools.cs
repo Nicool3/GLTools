@@ -1,4 +1,5 @@
 ﻿using Autodesk.AutoCAD.Geometry;
+using Autodesk.AutoCAD.DatabaseServices;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -73,6 +74,35 @@ namespace GLTools
         public static Point3d GetCenterPointBetweenTwoPoint(this Point3d point1, Point3d point2)
         {
             return new Point3d((point1.X + point2.X) / 2, (point1.Y + point2.Y) / 2, (point1.Z + point2.Z) / 2);
+        }
+
+        /// <summary>
+        /// 将指定文字样式设为当前
+        /// </summary>
+        public static void SetTextStyleCurrent(this Database db, string TextStyleName)
+        {
+
+            // 开启事务处理
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                // 打开文字样式表
+                TextStyleTable tst = (TextStyleTable)trans.GetObject(db.TextStyleTableId, OpenMode.ForRead);
+                ObjectId tsId = ObjectId.Null;
+
+                string message = string.Empty;
+                if (!tst.Has(TextStyleName))
+                {
+                    
+                }
+                else
+                    tsId = tst[TextStyleName];
+
+                TextStyleTableRecord tstr = (TextStyleTableRecord)trans.GetObject(tsId, OpenMode.ForRead);
+                trans.AddNewlyCreatedDBObject(tstr, true);
+
+                // 提交事务
+                trans.Commit();
+            }
         }
 
     }
