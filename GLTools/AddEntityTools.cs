@@ -376,7 +376,7 @@ namespace GLTools
         /// <summary>
         /// 存储自定义数据
         /// </summary>
-        public static void WriteDataToNOD(this Database db, string DataName, double DataNum)
+        public static void WriteDoubleToNOD(this Database db, string DataName, double DataNum)
         {
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
@@ -395,10 +395,12 @@ namespace GLTools
         /// <summary>
         /// 读取自定义数据
         /// </summary>
-        public static void ReadDataFromNOD(this Database db, Document doc, string DataName)
+        public static double ReadDoubleFromNOD(this Database db, Document doc, string DataName)
         {
+            double result = 0;
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
+                
                 // 命名对象字典
                 DBDictionary nod = trans.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForWrite) as DBDictionary;
                 // 查找自定义数据
@@ -406,14 +408,11 @@ namespace GLTools
                 {
                     ObjectId myDataId = nod.GetAt(DataName);
                     Xrecord myXrecord = trans.GetObject(myDataId, OpenMode.ForRead) as Xrecord;
-
-                    foreach (TypedValue tv in myXrecord.Data)
-                    {
-                       doc.Editor.WriteMessage("type: {0}, value: {1}\n", tv.TypeCode, tv.Value);
-                    }
+                    result = (double)myXrecord.Data.AsArray()[0].Value;
                 }
+                trans.Commit();
             }
-
+            return result;
         }
 
     }

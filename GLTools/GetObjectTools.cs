@@ -25,5 +25,17 @@ namespace GLTools
             return PPtRes.Value;
         }
 
+        /// <summary>
+        /// 输入数字
+        /// </summary>
+        public static double GetNumberOnScreen(this Editor ed, string opt)
+        {
+            PromptDoubleResult PPtRes;
+            PromptDoubleOptions PPtOpts = new PromptDoubleOptions("");
+            PPtOpts.Message = opt;
+            PPtRes = ed.GetDouble(PPtOpts);
+            return PPtRes.Value;
+        }
+
     }
 }
