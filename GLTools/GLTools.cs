@@ -17,8 +17,8 @@ namespace GLTools
         /// <summary>
         /// 绘制钢筋
         /// </summary>
-        [CommandMethod("DrawGJ")]
-        public static void DrawGJ()
+        [CommandMethod("TTT")]
+        public static void TTT()
         {
             // 获取当前文档和数据库
             Document doc = Application.DocumentManager.MdiActiveDocument;
@@ -28,10 +28,12 @@ namespace GLTools
             Point3d P0 = new Point3d();
             P0 = ed.GetPointOnScreen("请指定圆心: ");
 
-            db.AddCircleModeSpace(P0, 100);
+            db.AddCircleModeSpace(P0, 1200);
             db.SetTextStyleCurrent("SMEDI");
-            db.AddTextToModeSpace(P0, 3.5, "DN1000");
+            db.AddTextToModeSpace(P0, 350, "DN1200");
             ed.WriteMessage("\n绘制完成");
+            db.WriteDataToNOD("X1", P0.X);
+            db.ReadDataFromNOD(doc, "X1");
 
         }
     }

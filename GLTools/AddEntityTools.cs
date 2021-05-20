@@ -1,10 +1,13 @@
-﻿using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.Geometry;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Autodesk.AutoCAD.Runtime;
+using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.Geometry;
+using Autodesk.AutoCAD.EditorInput;
 
 namespace GLTools
 {
@@ -369,5 +372,49 @@ namespace GLTools
             text0.TextString = str0;
             return db.AddEntityToModeSpace(text0);
         }
+
+        /// <summary>
+        /// 存储自定义数据
+        /// </summary>
+        public static void WriteDataToNOD(this Database db, string DataName, double DataNum)
+        {
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                // 命名对象字典
+                DBDictionary nod = trans.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForWrite) as DBDictionary;
+                // 自定义数据
+                Xrecord myXrecord = new Xrecord();
+                myXrecord.Data = new ResultBuffer(new TypedValue((int)DxfCode.Real, DataNum));
+                // 往命名对象字典中存储自定义数据
+                nod.SetAt(DataName, myXrecord);
+                trans.AddNewlyCreatedDBObject(myXrecord, true);
+                trans.Commit();
+            }
+        }
+
+        /// <summary>
+        /// 读取自定义数据
+        /// </summary>
+        public static void ReadDataFromNOD(this Database db, Document doc, string DataName)
+        {
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                // 命名对象字典
+                DBDictionary nod = trans.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForWrite) as DBDictionary;
+                // 查找自定义数据
+                if (nod.Contains(DataName))
+                {
+                    ObjectId myDataId = nod.GetAt(DataName);
+                    Xrecord myXrecord = trans.GetObject(myDataId, OpenMode.ForRead) as Xrecord;
+
+                    foreach (TypedValue tv in myXrecord.Data)
+                    {
+                       doc.Editor.WriteMessage("type: {0}, value: {1}\n", tv.TypeCode, tv.Value);
+                    }
+                }
+            }
+
+        }
+
     }
 }
