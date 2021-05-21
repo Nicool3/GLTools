@@ -15,27 +15,27 @@ namespace GLTools
     public static class GLTools
     {
         /// <summary>
-        /// 绘制钢筋&尝试
+        /// 测试
         /// </summary>
-        [CommandMethod("TTT")]
-        public static void TTT()
+        [CommandMethod("CSCS")]
+        public static void CSCS()
         {
             // 获取当前文档和数据库
             Document doc = Application.DocumentManager.MdiActiveDocument;
-            Editor ed = doc.Editor;
             Database db = doc.Database;
+            Editor ed = doc.Editor;
 
-            Point3d P0 = new Point3d();
-            P0 = ed.GetPointOnScreen("请指定圆心: ");
+            //Point3d P0 = new Point3d();
+            //P0 = ed.GetPointOnScreen("请指定圆心: ");
 
-            db.AddCircleModeSpace(P0, 1200);
-            db.SetTextStyleCurrent("SMEDI");
-            db.AddTextToModeSpace(P0, 350, "DN1200");
-            ed.WriteMessage("\n绘制完成");
-            double X1 = 0;
-            db.WriteDoubleToNOD("X1", P0.X);
-            X1 = db.ReadDoubleFromNOD(doc, "X1");
-            ed.WriteMessage(X1.ToString());
+            //db.AddCircleModeSpace(P0, 1200);
+            //db.SetTextStyleCurrent("SMEDI");
+            //db.AddTextToModeSpace(P0, 350, "DN1200");
+            //ed.WriteMessage("\n绘制完成");
+            //double X1 = 0;
+            //db.WriteDoubleToNOD("X1", P0.X);
+            //X1 = db.ReadDoubleFromNOD(doc, "X1");
+            //ed.WriteMessage(X1.ToString());
         }
 
         /// <summary>

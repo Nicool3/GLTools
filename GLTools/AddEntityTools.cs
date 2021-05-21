@@ -376,7 +376,7 @@ namespace GLTools
         /// <summary>
         /// 存储自定义数据
         /// </summary>
-        public static void WriteDoubleToNOD(this Database db, string DataName, double DataNum)
+        public static void WriteNumberToNOD(this Database db, string DataName, double DataNum)
         {
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
@@ -395,7 +395,7 @@ namespace GLTools
         /// <summary>
         /// 读取自定义数据
         /// </summary>
-        public static double ReadDoubleFromNOD(this Database db, Document doc, string DataName)
+        public static double ReadNumberFromNOD(this Database db, Document doc, string DataName)
         {
             double result = 0;
             using (Transaction trans = db.TransactionManager.StartTransaction())
