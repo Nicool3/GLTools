@@ -395,12 +395,11 @@ namespace GLTools
         /// <summary>
         /// 读取自定义数据
         /// </summary>
-        public static double ReadNumberFromNOD(this Database db, Document doc, string DataName)
+        public static double? ReadNumberFromNOD(this Database db, Document doc, string DataName)
         {
-            double result = 0;
+            double? result = null;
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
-                
                 // 命名对象字典
                 DBDictionary nod = trans.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForWrite) as DBDictionary;
                 // 查找自定义数据
@@ -408,12 +407,43 @@ namespace GLTools
                 {
                     ObjectId myDataId = nod.GetAt(DataName);
                     Xrecord myXrecord = trans.GetObject(myDataId, OpenMode.ForRead) as Xrecord;
-                    result = (double)myXrecord.Data.AsArray()[0].Value;
+                    result = (double?)myXrecord.Data.AsArray()[0].Value;
                 }
                 trans.Commit();
             }
             return result;
         }
 
+        /// <summary>
+        /// 管廊纵断面工具-标高及桩号初始化
+        /// </summary>
+        public static void WriteDataToNOD(this Database db, Editor ed)
+        {
+            Point3d P_BG1, P_BG2, P_ZH1, P_ZH2;
+            double BG1, BG2, ZH1, ZH2, X1, X2, Y1, Y2, SC_BG, SC_ZH;
+
+            P_BG1 = ed.GetPointOnScreen("\n选择标高基准点1");
+            BG1 = ed.GetNumberOnScreen("\n输入标高基准点1标高: ");
+            Y1 = P_BG1.Y;
+            P_BG2 = ed.GetPointOnScreen("\n选择标高基准点2");
+            BG2 = ed.GetNumberOnScreen("\n输入标高基准点2标高: ");
+            Y2 = P_BG2.Y;
+
+            P_ZH1 = ed.GetPointOnScreen("\n选择桩号基准点1");
+            ZH1 = ed.GetNumberOnScreen("\n输入桩号基准点1桩号(不含字母): ");
+            X1 = P_ZH1.X;
+            P_ZH2 = ed.GetPointOnScreen("\n选择桩号基准点2");
+            ZH2 = ed.GetNumberOnScreen("\n输入桩号基准点2桩号(不含字母): ");
+            X2 = P_ZH2.X;
+
+            SC_BG = Math.Abs((BG2 - BG1) / (Y2 - Y1));
+            SC_ZH = Math.Abs((ZH2 - ZH1) / (X2 - X1));
+
+            // 储存上述结果
+            db.WriteNumberToNOD("X1", X1);
+            db.WriteNumberToNOD("Y1", Y1);
+            db.WriteNumberToNOD("SC_BG", SC_BG);
+            db.WriteNumberToNOD("SC_ZH", SC_BG);
+        }
     }
 }

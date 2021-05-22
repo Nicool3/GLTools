@@ -49,19 +49,29 @@ namespace GLTools
             Editor ed = doc.Editor;
             Database db = doc.Database;
 
-            Point3d P_BG1, P_BG2, P_ZH1, P_ZH2;
-            double BG1, BG2, ZH1, ZH2;
-            P_BG1 = ed.GetPointOnScreen("选择标高基准点1");
-            BG1 = ed.GetNumberOnScreen("输入标高基准点1标高: ");
-            P_BG2 = ed.GetPointOnScreen("选择标高基准点2");
-            BG2 = ed.GetNumberOnScreen("输入标高基准点2标高: ");
-            P_ZH1 = ed.GetPointOnScreen("选择桩号基准点1");
-            ZH1 = ed.GetNumberOnScreen("输入桩号基准点1桩号(不含字母): ");
-            P_ZH2 = ed.GetPointOnScreen("选择桩号基准点2");
-            ZH2 = ed.GetNumberOnScreen("输入桩号基准点2桩号(不含字母): ");
+            // 判断DB中是否已存在经过初始化的数据
+            string[] DBNameArray = { "X1", "Y1", "SC_BG", "SC_ZH" };
+            double?[] DBNumberArray = new double?[4];
 
-            ed.WriteMessage((BG2 - BG1).ToString());
-            ed.WriteMessage((P_BG2.Y - P_BG1.Y).ToString());
+            for (int i = 0; i < 4; i++)
+            {
+                DBNumberArray[i] = db.ReadNumberFromNOD(doc, DBNameArray[i]);
+            }
+            bool emptyFlag = DBNumberArray.Any(x => string.IsNullOrEmpty(x.ToString()));
+            bool overFlag = false;
+            if (!emptyFlag)
+            {
+                overFlag = ed.GetKeywordOnScreen("已检测到初始化结果, 是否覆盖? ");
+                if (overFlag)
+                {
+                    db.WriteDataToNOD(ed);
+                }
+            }
+            else
+            {
+                db.WriteDataToNOD(ed);
+            }
+            
         }
     }
 }
