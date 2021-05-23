@@ -71,6 +71,11 @@
       <HintPath>..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2018\acmgd.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Autodesk.AutoCAD.Interop">
+      <HintPath>..\..\..\..\..\..\Program Files\Autodesk\Autodesk_ObjectARX_2018_Win_64_and_32_Bit\inc-win32\Autodesk.AutoCAD.Interop.dll</HintPath>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
@@ -85,8 +90,8 @@
     <Compile Include="BaseTools.cs" />
     <Compile Include="EditEntityTools.cs" />
     <Compile Include="GetObjectTools.cs" />
-    <Compile Include="GLTools.cs" />
-    <Compile Include="HatchTools.cs" />
+    <Compile Include="GLCommandTools.cs" />
+    <Compile Include="MenuTools.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

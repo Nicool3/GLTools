@@ -445,5 +445,21 @@ namespace GLTools
             db.WriteNumberToNOD("SC_BG", SC_BG);
             db.WriteNumberToNOD("SC_ZH", SC_BG);
         }
+
+        /// <summary>
+        /// 判断DB中是否已存在经过初始化的数据
+        /// </summary>
+        public static bool initialized(this Database db, Document doc)
+        {
+            string[] DBNameArray = { "X1", "Y1", "SC_BG", "SC_ZH" };
+            double?[] DBNumberArray = new double?[4];
+
+            for (int i = 0; i < 4; i++)
+            {
+                DBNumberArray[i] = db.ReadNumberFromNOD(doc, DBNameArray[i]);
+            }
+            bool emptyFlag = DBNumberArray.Any(x => string.IsNullOrEmpty(x.ToString()));
+            return !emptyFlag;
+         }
     }
 }
