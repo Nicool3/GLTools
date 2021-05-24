@@ -103,11 +103,29 @@ namespace GLTools
             ss1 = doc.GetSelectionSet("请选择第一列数字", selFtr);
             ss2 = doc.GetSelectionSet("请选择第二列数字", selFtr);
 
-            // 遍历选择集内的对象
-            foreach (SelectedObject obj in ss1)
+            //开启事务
+            using (Transaction trans = db.TransactionManager.StartTransaction())
             {
-                // 确认返回的是合法的 SelectedObject 对象
-                if (obj != null) ed.WriteMessage(obj.ToString());
+                // 遍历选择集内的对象
+                foreach (SelectedObject obj in ss1)
+                {
+                    // 确认返回的是合法的 SelectedObject 对象
+                    if (obj != null)
+                    {
+                        // 以读模式打开所选对象
+                        Entity ent = trans.GetObject(obj.ObjectId, OpenMode.ForRead) as Entity;
+                        if (ent != null && ent.GetType()==typeof(DBText))
+                        {
+                            DBText text = ent as DBText;
+                            ed.WriteMessage("\n"+text.TextString);
+                        }
+                        else if (ent != null && ent.GetType() == typeof(MText))
+                        {
+                            MText text = ent as MText;
+                            ed.WriteMessage("\n" + text.Contents);
+                        }
+                    }
+                }
             }
         }
     }
