@@ -70,7 +70,43 @@ namespace GLTools
             // 如果状态OK，表示已选择对象
             if (ssp.Status == PromptStatus.OK) ss1 = ssp.Value;
             return ss1;
-            
+        }
+
+        /// <summary>
+        /// 获取文字相关属性
+        /// </summary>
+        public static ObjectId GetTextAttr(this ObjectId textId, out bool flag, out string content, out Point3d position)
+        {
+            // 图形数据库
+            Database db = HostApplicationServices.WorkingDatabase;
+            // 开启事务处理
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                Entity ent = trans.GetObject(textId, OpenMode.ForRead) as Entity;
+
+                if (ent != null && ent.GetType() == typeof(DBText))
+                {
+                    DBText text = ent as DBText;
+                    flag = true;
+                    content = text.TextString;
+                    position = text.Position;
+                }
+                else if (ent != null && ent.GetType() == typeof(MText))
+                {
+                    MText text = ent as MText;
+                    flag = true;
+                    content = text.Text;
+                    position = text.Location;
+                }
+                else
+                {
+                    flag = false;
+                    content = "";
+                    position = new Point3d(0, 0, 0);
+                }
+                trans.Commit();
+            }
+            return textId;
         }
     }
 }
