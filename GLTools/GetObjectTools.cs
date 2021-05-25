@@ -60,22 +60,17 @@ namespace GLTools
         public static SelectionSet GetSelectionSet(this Document doc, string message, SelectionFilter selFtr)
         {
             Database db = doc.Database;
-            // 启动事务
-            using (Transaction trans = db.TransactionManager.StartTransaction())
-            {
-                // 请求选择对象
-                SelectionSet ss1 = null;
-                PromptSelectionOptions Opts = new PromptSelectionOptions();
-                Opts.MessageForAdding = message;
-                PromptSelectionResult ssp = doc.Editor.GetSelection(Opts, selFtr);
 
-                // 如果状态OK，表示已选择对象
-                if (ssp.Status == PromptStatus.OK)
-                {
-                    ss1 = ssp.Value;
-                }
-                return ss1;
-            }
+            // 请求选择对象
+            SelectionSet ss1 = null;
+            PromptSelectionOptions Opts = new PromptSelectionOptions();
+            Opts.MessageForAdding = message;
+            PromptSelectionResult ssp = doc.Editor.GetSelection(Opts, selFtr);
+
+            // 如果状态OK，表示已选择对象
+            if (ssp.Status == PromptStatus.OK) ss1 = ssp.Value;
+            return ss1;
+            
         }
     }
 }
