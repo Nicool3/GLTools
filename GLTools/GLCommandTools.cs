@@ -29,22 +29,18 @@ namespace GLTools
             SelectionSet ss1 = null;
             Point3d position;
             string content;
-            bool flag;
+            bool status;
 
 
             // 文字过滤器
-            TypedValue[] typeArrText = new TypedValue[4];
-            typeArrText.SetValue(new TypedValue((int)DxfCode.Operator, "<OR"), 0);
-            typeArrText.SetValue(new TypedValue((int)DxfCode.Start, "TEXT"), 1);
-            typeArrText.SetValue(new TypedValue((int)DxfCode.Start, "MTEXT"), 2);
-            typeArrText.SetValue(new TypedValue((int)DxfCode.Operator, "OR>"), 3);
-            SelectionFilter selFtrText = new SelectionFilter(typeArrText);
+            List<string> strlist = new List<string> { "TEXT", "MTEXT" };
+            SelectionFilter selFtrText = strlist.GetTypeFilter("OR");
 
             ss1 = doc.GetSelectionSet("请选择第一列数字", selFtrText);
             foreach(ObjectId objId in ss1.GetObjectIds())
             {
-                objId.GetTextAttr(out flag, out content, out position);
-                ed.WriteMessage("\n" + flag.ToString());
+                objId.GetTextAttr(out status, out content, out position);
+                ed.WriteMessage("\n" + status.ToString());
                 ed.WriteMessage("\n" + content);
                 ed.WriteMessage("\n" + position.X.ToString());
             }

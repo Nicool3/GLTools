@@ -73,9 +73,13 @@ namespace GLTools
         }
 
         /// <summary>
-        /// 获取文字相关属性
+        /// 获取单行及多行文字相关属性
         /// </summary>
-        public static ObjectId GetTextAttr(this ObjectId textId, out bool flag, out string content, out Point3d position)
+        /// <param name="textId">文字对象ID</param>
+        /// <param name="status">读取状态</param>
+        /// <param name="content">文字内容</param>
+        /// <param name="position">文字位置</param>
+        public static ObjectId GetTextAttr(this ObjectId textId, out bool status, out string content, out Point3d position)
         {
             // 图形数据库
             Database db = HostApplicationServices.WorkingDatabase;
@@ -87,26 +91,87 @@ namespace GLTools
                 if (ent != null && ent.GetType() == typeof(DBText))
                 {
                     DBText text = ent as DBText;
-                    flag = true;
+                    status = true;
                     content = text.TextString;
                     position = text.Position;
                 }
                 else if (ent != null && ent.GetType() == typeof(MText))
                 {
-                    MText text = ent as MText;
-                    flag = true;
-                    content = text.Text;
-                    position = text.Location;
+                    MText mtext = ent as MText;
+                    status = true;
+                    content = mtext.Text;
+                    position = mtext.Location;
                 }
                 else
                 {
-                    flag = false;
+                    status = false;
                     content = "";
                     position = new Point3d(0, 0, 0);
                 }
                 trans.Commit();
             }
             return textId;
+        }
+
+        /// <summary>
+        /// 获取直线及多段线相关属性
+        /// </summary>
+        /// <param name="lineId">文字对象ID</param>
+        /// <param name="status">读取状态</param>
+        /// <param name="startpoint">文字内容</param>
+        /// <param name="endpoint">文字位置</param>
+        public static ObjectId GetLineAttr(this ObjectId lineId, out bool status, out Point3d startpoint, out Point3d endpoint)
+        {
+            // 图形数据库
+            Database db = HostApplicationServices.WorkingDatabase;
+            // 开启事务处理
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                Entity ent = trans.GetObject(lineId, OpenMode.ForRead) as Entity;
+
+                if (ent != null && ent.GetType() == typeof(Line))
+                {
+                    Line line = ent as Line;
+                    status = true;
+                    startpoint = line.StartPoint;
+                    endpoint = line.EndPoint;
+                }
+                else if (ent != null && ent.GetType() == typeof(Polyline))
+                {
+                    Polyline pline = ent as Polyline;
+                    status = true;
+                    startpoint = pline.StartPoint;
+                    endpoint = pline.EndPoint;
+                }
+                else
+                {
+                    status = false;
+                    startpoint = new Point3d(0, 0, 0);
+                    endpoint = new Point3d(0, 0, 0);
+                }
+                trans.Commit();
+            }
+            return lineId;
+        }
+
+        /// <summary>
+        /// 生成过滤器
+        /// </summary>
+        public static SelectionFilter GetTypeFilter(this List<string> strlist, string opt)
+        {
+            int n = strlist.Count();
+            string startopt = "<" + opt;
+            string endopt = opt + ">";
+            TypedValue[] typelist = new TypedValue[n+2];
+            typelist.SetValue(new TypedValue((int)DxfCode.Operator, startopt), 0);
+            for (int i=1; i<n+1; i++)
+            {
+                typelist.SetValue(new TypedValue((int)DxfCode.Start, strlist[i-1]), i);
+            }
+            typelist.SetValue(new TypedValue((int)DxfCode.Operator, endopt), n+1);
+
+            SelectionFilter typefilter = new SelectionFilter(typelist);
+            return typefilter;
         }
     }
 }
