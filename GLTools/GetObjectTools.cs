@@ -79,7 +79,8 @@ namespace GLTools
         /// <param name="status">读取状态</param>
         /// <param name="content">文字内容</param>
         /// <param name="position">文字位置</param>
-        public static ObjectId GetTextAttr(this ObjectId textId, out bool status, out string content, out Point3d position)
+        public static ObjectId GetTextAttr(this ObjectId textId, out bool status, out string content, out Point3d position, 
+            out double height, out double rotation, out string textstyle)
         {
             // 图形数据库
             Database db = HostApplicationServices.WorkingDatabase;
@@ -94,6 +95,9 @@ namespace GLTools
                     status = true;
                     content = text.TextString;
                     position = text.Position;
+                    height = text.Height;
+                    rotation = text.Rotation;
+                    textstyle = text.TextStyleName;
                 }
                 else if (ent != null && ent.GetType() == typeof(MText))
                 {
@@ -101,12 +105,19 @@ namespace GLTools
                     status = true;
                     content = mtext.Text;
                     position = mtext.Location;
+                    height = mtext.TextHeight;
+                    rotation = mtext.Rotation;
+                    textstyle = mtext.TextStyleName;
                 }
                 else
                 {
                     status = false;
                     content = "";
                     position = new Point3d(0, 0, 0);
+                    height = 3.5;
+                    rotation = Math.PI * 0.5;
+                    textstyle = "SMEDI";
+                    // horizontalmode = TextHorizontalMode.TextLeft;
                 }
                 trans.Commit();
             }
@@ -116,10 +127,10 @@ namespace GLTools
         /// <summary>
         /// 获取直线及多段线相关属性
         /// </summary>
-        /// <param name="lineId">文字对象ID</param>
+        /// <param name="lineId">直线对象ID"</param>
         /// <param name="status">读取状态</param>
-        /// <param name="startpoint">文字内容</param>
-        /// <param name="endpoint">文字位置</param>
+        /// <param name="startpoint">直线起点</param>
+        /// <param name="endpoint">直线终点</param>
         public static ObjectId GetLineAttr(this ObjectId lineId, out bool status, out Point3d startpoint, out Point3d endpoint)
         {
             // 图形数据库
