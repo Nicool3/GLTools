@@ -58,7 +58,7 @@ namespace GLTools
         {
             // 声明一个与X轴平行的向量
             Vector3d temp = new Vector3d(1, 0, 0);
-            // 获取七点到终点的向量
+            // 获取起点到终点的向量
             Vector3d VsToe = startPoint.GetVectorTo(endPoint);
             return VsToe.Y > 0 ? temp.GetAngleTo(VsToe) : -temp.GetAngleTo(VsToe);
         }
@@ -80,21 +80,41 @@ namespace GLTools
         }
 
         /// <summary>
+        /// 求两直线交点
+        /// </summary>
+        public static Point3d GetLineIntersection(this Database db, ObjectId LineId1, ObjectId LineId2)
+        {
+            // 启动事务
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                Curve Line1 = (Curve)trans.GetObject(LineId1, OpenMode.ForRead);
+                Curve Line2 = (Curve)trans.GetObject(LineId2, OpenMode.ForRead);
+
+                Point3dCollection points = new Point3dCollection();
+                Line1.IntersectWith(Line2, Intersect.OnBothOperands, new Plane(), points, IntPtr.Zero, IntPtr.Zero);
+
+                return points[0];
+                // 关闭事务
+            }
+        }
+
+
+        /// <summary>
         /// 获取文字样式Id
         /// </summary>
         public static ObjectId GetTextStyleId(this Database db, string TextStyleName)
         {
+            ObjectId TextStyleId = ObjectId.Null;
             // 开启事务处理
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
                 // 打开文字样式表
                 TextStyleTable tst = (TextStyleTable)trans.GetObject(db.TextStyleTableId, OpenMode.ForRead);
-                //如果不存在名为styleName的文字样式，则返回
-                if (!tst.Has(TextStyleName)) return;
-
-                //获取名为styleName的的文字样式表记录的Id
-                ObjectId tsId = tst[TextStyleName];
+                //如果存在名为TextStyleName的文字样式，则获取对应的文字样式表记录的Id
+                if (tst.Has(TextStyleName)) TextStyleId = tst[TextStyleName];
+                trans.Commit();
             }
+            return TextStyleId;
         }
 
         /// <summary>

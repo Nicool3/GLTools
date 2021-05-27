@@ -79,8 +79,7 @@ namespace GLTools
         /// <param name="status">读取状态</param>
         /// <param name="content">文字内容</param>
         /// <param name="position">文字位置</param>
-        public static ObjectId GetTextAttr(this ObjectId textId, out bool status, out string content, out Point3d position, 
-            out double height, out double rotation, out string textstyle)
+        public static ObjectId GetTextAttr(this ObjectId textId, out bool status, out string content, out Point3d position)
         {
             // 图形数据库
             Database db = HostApplicationServices.WorkingDatabase;
@@ -95,9 +94,6 @@ namespace GLTools
                     status = true;
                     content = text.TextString;
                     position = text.Position;
-                    height = text.Height;
-                    rotation = text.Rotation;
-                    textstyle = text.TextStyleName;
                 }
                 else if (ent != null && ent.GetType() == typeof(MText))
                 {
@@ -105,19 +101,12 @@ namespace GLTools
                     status = true;
                     content = mtext.Text;
                     position = mtext.Location;
-                    height = mtext.TextHeight;
-                    rotation = mtext.Rotation;
-                    textstyle = mtext.TextStyleName;
                 }
                 else
                 {
                     status = false;
                     content = "";
                     position = new Point3d(0, 0, 0);
-                    height = 3.5;
-                    rotation = Math.PI * 0.5;
-                    textstyle = "SMEDI";
-                    // horizontalmode = TextHorizontalMode.TextLeft;
                 }
                 trans.Commit();
             }

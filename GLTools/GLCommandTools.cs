@@ -26,32 +26,19 @@ namespace GLTools
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor ed = doc.Editor;
-            SelectionSet ss1 = null;
-            Point3d position;
-            string content, textstyle;
-            bool status;
-            double height, rotation;
 
-            // 文字过滤器
-            List<string> strlist = new List<string> { "TEXT", "MTEXT" };
-            SelectionFilter selFtrText = strlist.GetTypeFilter("OR");
+            PromptEntityOptions peo1 = new PromptEntityOptions("/n请选择第一条曲线: ");
+            PromptEntityResult per1 = ed.GetEntity(peo1);
+            if (per1.Status != PromptStatus.OK) { return; }
+            ObjectId objid1 = per1.ObjectId;
 
-            ss1 = doc.GetSelectionSet("请选择一列数字", selFtrText);
-            foreach (ObjectId objId in ss1.GetObjectIds())
-            {
-                // db.SetTextStyleCurrent("SMEDI");
-                objId.GetTextAttr(out status, out content, out position, out height, out rotation, out textstyle);
-                ed.WriteMessage("\n" + status.ToString());
-                ed.WriteMessage("\n" + content);
-                ed.WriteMessage("\n" + position.X.ToString());
-                ed.WriteMessage("\n" + height.ToString());
-                ed.WriteMessage("\n" + rotation.ToString());
-                ed.WriteMessage("\n" + textstyle);
-            }
+            PromptEntityOptions peo2 = new PromptEntityOptions("/n请选择第二条曲线: ");
+            PromptEntityResult per2 = ed.GetEntity(peo2);
+            if (per2.Status != PromptStatus.OK) { return; }
+            ObjectId objid2 = per2.ObjectId;
 
-
-            //Point3d P0 = new Point3d();
-            //P0 = ed.GetPointOnScreen("请指定圆心: ");
+            Point3d m_pt = db.GetLineIntersection(objid1, objid2);
+            ed.WriteMessage("/n第一条曲线与第二条曲线交点:{0}", m_pt);
 
             //db.AddCircleModeSpace(P0, 1200);
             //db.SetTextStyleCurrent("SMEDI");
@@ -144,19 +131,17 @@ namespace GLTools
                     if (ss1.GetObjectIds()[i] != null & ss2.GetObjectIds()[i] != null)
                     {
                         bool tstatus1, tstatus2;
-                        string content1, content2, textstyle;
-                        double height, rotation;
+                        string content1, content2;
                         Point3d position1, position2;
 
-                        ObjectId textId1 = ss1.GetObjectIds()[i].GetTextAttr(out tstatus1, out content1, out position1, out height, out rotation, out textstyle);
-                        ObjectId textId2 = ss2.GetObjectIds()[i].GetTextAttr(out tstatus2, out content2, out position2, out height, out rotation, out textstyle);
+                        ObjectId textId1 = ss1.GetObjectIds()[i].GetTextAttr(out tstatus1, out content1, out position1);
+                        ObjectId textId2 = ss2.GetObjectIds()[i].GetTextAttr(out tstatus2, out content2, out position2);
 
                         if (tstatus1 == true && tstatus2 == true)
                         {
                             Point3d insertp = new Point3d(position1.X, insertpy, position1.Z);
                             double result = Convert.ToDouble(content1) - Convert.ToDouble(content2);
-                            db.SetTextStyleCurrent(textstyle);
-                            db.AddTextToModeSpace(result.ToString(), insertp, height, rotation);
+                            db.AddTextToModeSpace(result.ToString("#.000"), insertp, 3.5, Math.PI*0.5);
                         }
                     }
                 }

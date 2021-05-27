@@ -365,7 +365,8 @@ namespace GLTools
         /// <param name="height0">文字高度</param>
         /// <param name="str0">文字内容</param>
         public static ObjectId AddTextToModeSpace(this Database db, string content, Point3d position, 
-            double height=3.5, double rotation=0, double widthfactor=0.7, string textstylename="SMEDI")
+            double height=3.5, double rotation=0, double widthfactor=0.7, string textstylename="SMEDI",
+            TextHorizontalMode thmode=TextHorizontalMode.TextCenter, TextVerticalMode tvmode = TextVerticalMode.TextVerticalMid)
         {
             DBText text = new DBText();
             text.TextString = content;
@@ -373,8 +374,10 @@ namespace GLTools
             text.Height = height;
             text.Rotation = rotation;
             text.WidthFactor = widthfactor;
-            text.TextStyleId = textstylename;
-
+            text.TextStyleId = db.GetTextStyleId(textstylename);
+            text.HorizontalMode = thmode;
+            text.VerticalMode = tvmode;
+            text.AlignmentPoint = text.Position;
             return db.AddEntityToModeSpace(text);
         }
 
