@@ -27,18 +27,20 @@ namespace GLTools
             Database db = doc.Database;
             Editor ed = doc.Editor;
 
-            PromptEntityOptions peo1 = new PromptEntityOptions("/n请选择第一条曲线: ");
-            PromptEntityResult per1 = ed.GetEntity(peo1);
-            if (per1.Status != PromptStatus.OK) { return; }
-            ObjectId objid1 = per1.ObjectId;
+            db.AddTable();
 
-            PromptEntityOptions peo2 = new PromptEntityOptions("/n请选择第二条曲线: ");
-            PromptEntityResult per2 = ed.GetEntity(peo2);
-            if (per2.Status != PromptStatus.OK) { return; }
-            ObjectId objid2 = per2.ObjectId;
+            //PromptEntityOptions peo1 = new PromptEntityOptions("/n请选择第一条曲线: ");
+            //PromptEntityResult per1 = ed.GetEntity(peo1);
+            //if (per1.Status != PromptStatus.OK) { return; }
+            //ObjectId objid1 = per1.ObjectId;
 
-            Point3d m_pt = db.GetLineIntersection(objid1, objid2);
-            ed.WriteMessage("/n第一条曲线与第二条曲线交点:{0}", m_pt);
+            //PromptEntityOptions peo2 = new PromptEntityOptions("/n请选择第二条曲线: ");
+            //PromptEntityResult per2 = ed.GetEntity(peo2);
+            //if (per2.Status != PromptStatus.OK) { return; }
+            //ObjectId objid2 = per2.ObjectId;
+
+            //Point3d m_pt = db.GetLineIntersection(objid1, objid2);
+            //ed.WriteMessage("/n第一条曲线与第二条曲线交点:{0}", m_pt);
 
             //db.AddCircleModeSpace(P0, 1200);
             //db.SetTextStyleCurrent("SMEDI");
