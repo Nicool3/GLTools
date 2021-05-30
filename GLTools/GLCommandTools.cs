@@ -16,6 +16,16 @@ namespace GLTools
 {
     public class GLCommandTools
     {
+        [CommandMethod("NEWTABLESTYLE")]
+        public void test()
+        {
+            // 获取当前文档和数据库
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+        }
+
         /// <summary>
         /// 测试
         /// </summary>
@@ -27,7 +37,50 @@ namespace GLTools
             Database db = doc.Database;
             Editor ed = doc.Editor;
 
-            db.AddTable();
+            // 平面图中需将坐标系置为WCS
+            ed.CurrentUserCoordinateSystem = Matrix3d.Identity;
+
+            // 文字过滤器
+            List<string> strlist = new List<string> { "TEXT", "MTEXT" };
+            SelectionFilter selFtrText = strlist.GetTypeFilter("OR");
+            SelectionSet ss = doc.GetSelectionSet("请选择节点文字", selFtrText);
+
+            Table table = new Table();
+            Point3d position = ed.GetPointOnScreen("请指定表格插入点: ");
+            table.Position = position; // 设置插入点
+            table.SetSize(ss.Count+1, 2); // 表格大小
+            table.CellType(1, 1);
+            table.Cells.TextStyleId = db.GetTextStyleId("SMEDI");
+            table.Cells.TextHeight = 3.5;
+            table.Cells.Alignment = CellAlignment.MiddleCenter;
+            table.SetRowHeight(6); // 设置行高
+            table.SetColumnWidth(50); // 设置列宽
+
+            table.Cells[0, 0].TextString = "节点汇总表";
+
+            int i = 1;
+
+            foreach (SelectedObject obj in ss)
+            {
+                if (obj != null)
+                {
+                    bool status0 = false;
+                    string content0 = "";
+                    Point3d p0 = new Point3d(0, 0, 0);
+                    try{
+                        obj.ObjectId.GetTextAttr(out status0, out content0, out p0);
+                    }
+                    catch
+                    {
+                        ed.WriteMessage("\n出现错误! ");
+                    }
+                    table.Cells[i, 0].TextString = content0;
+                    table.Cells[i, 1].TextString = p0.X.ToString();
+                }
+                i++;
+            }
+
+            db.AddEntityToModeSpace(table);
 
             //PromptEntityOptions peo1 = new PromptEntityOptions("/n请选择第一条曲线: ");
             //PromptEntityResult per1 = ed.GetEntity(peo1);
@@ -42,9 +95,9 @@ namespace GLTools
             //Point3d m_pt = db.GetLineIntersection(objid1, objid2);
             //ed.WriteMessage("/n第一条曲线与第二条曲线交点:{0}", m_pt);
 
-            //db.AddCircleModeSpace(P0, 1200);
+            //db.AddCircleModeSpace(position, 1200);
             //db.SetTextStyleCurrent("SMEDI");
-            //db.AddTextToModeSpace(P0, 350, "DN1200");
+            //db.AddTextToModeSpace("DN1200", position);
             //ed.WriteMessage("\n绘制完成");
 
         }

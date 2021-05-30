@@ -97,48 +97,6 @@ namespace GLTools
                 // 关闭事务
             }
         }
-
-
-        /// <summary>
-        /// 获取文字样式Id
-        /// </summary>
-        public static ObjectId GetTextStyleId(this Database db, string TextStyleName)
-        {
-            ObjectId TextStyleId = ObjectId.Null;
-            // 开启事务处理
-            using (Transaction trans = db.TransactionManager.StartTransaction())
-            {
-                // 打开文字样式表
-                TextStyleTable tst = (TextStyleTable)trans.GetObject(db.TextStyleTableId, OpenMode.ForRead);
-                //如果存在名为TextStyleName的文字样式，则获取对应的文字样式表记录的Id
-                if (tst.Has(TextStyleName)) TextStyleId = tst[TextStyleName];
-                trans.Commit();
-            }
-            return TextStyleId;
-        }
-
-        /// <summary>
-        /// 将指定文字样式设为当前
-        /// </summary>
-        public static void SetTextStyleCurrent(this Database db, string TextStyleName)
-        {
-
-            // 开启事务处理
-            using (Transaction trans = db.TransactionManager.StartTransaction())
-            {
-                // 打开文字样式表
-                TextStyleTable tst = (TextStyleTable)trans.GetObject(db.TextStyleTableId, OpenMode.ForRead);
-                //如果不存在名为styleName的文字样式，则返回
-                if (!tst.Has(TextStyleName)) return;
-                //获取名为styleName的的文字样式表记录的Id
-                ObjectId tsId = tst[TextStyleName];
-                //如果指定的文字样式为当前文字样式，则返回
-                if (db.Textstyle == tsId) return;
-                //指定当前文字样式
-                db.Textstyle = tsId;
-                // 提交事务
-                trans.Commit();
-            }
-        }
+          
     }
 }

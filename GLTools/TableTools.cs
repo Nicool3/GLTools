@@ -14,7 +14,7 @@ namespace GLTools
 {
     public static class TableTools
     {
-        public static void AddTable(this Database db)
+        public static void AddTable(this Database db, Point3d position)
         {
             Table table = new Table();
 
@@ -22,9 +22,9 @@ namespace GLTools
             table.SetRowHeight(10); // 设置行高
             table.SetColumnWidth(50); // 设置列宽
             table.Columns[0].Width = 20; // 设置第一列宽度为20
-            table.Position = new Point3d(100, 100, 0); // 设置插入点
-            table.Cells[0, 0].TextString = "测试表格数据统计";
-            table.Cells[0, 0].TextHeight = 6; //设置文字高度
+            table.Position = position; // 设置插入点
+            table.Cells[0, 0].TextString = "节点汇总表";
+            table.Cells[0, 0].TextHeight = 7; //设置文字高度
             Color color = Color.FromColorIndex(ColorMethod.ByAci, 3); // 声明颜色
             table.Cells[0, 0].BackgroundColor = color; // 设置背景颜色
             color = Color.FromColorIndex(ColorMethod.ByAci, 1);
@@ -33,14 +33,7 @@ namespace GLTools
             table.Cells[1, 1].TextString = "11111";
             table.Cells[2, 3].TextString = "23333";
 
-            using (Transaction trans = db.TransactionManager.StartTransaction())
-            {
-                BlockTable bt = (BlockTable)trans.GetObject(db.BlockTableId, OpenMode.ForRead);
-                BlockTableRecord btr = (BlockTableRecord)trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
-                btr.AppendEntity(table);
-                trans.AddNewlyCreatedDBObject(table, true);
-                trans.Commit();
-            }
+            db.AddEntityToModeSpace(table);
         }
     }
 }
