@@ -16,13 +16,27 @@ namespace GLTools
 {
     public class GLCommandTools
     {
-        [CommandMethod("NEWTABLESTYLE")]
+        /// <summary>
+        /// 测试
+        /// </summary>
+        [CommandMethod("JDJD")]
         public void test()
         {
             // 获取当前文档和数据库
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor ed = doc.Editor;
+
+            PromptEntityOptions peo1 = new PromptEntityOptions("/n请选择: ");
+            PromptEntityResult per1 = ed.GetEntity(peo1);
+            if (per1.Status != PromptStatus.OK) { return; }
+            ObjectId objid1 = per1.ObjectId;
+            bool status0 = false;
+            string content0 = "";
+            Point3d p0 = new Point3d(0, 0, 0);
+
+            objid1.GetTextAttr(out status0, out content0, out p0);
+            ed.WriteMessage(content0.IsBuildingName().ToString());
 
         }
 
@@ -69,6 +83,21 @@ namespace GLTools
                     Point3d p0 = new Point3d(0, 0, 0);
                     try{
                         obj.ObjectId.GetTextAttr(out status0, out content0, out p0);
+                        double mindis = 100;
+                        ObjectId mindisId = ObjectId.Null;
+                        foreach (SelectedObject subobj in ss)
+                        {
+                            bool substatus = false;
+                            string subcontent = "";
+                            Point3d subp = new Point3d(0, 0, 0);
+                            subobj.ObjectId.GetTextAttr(out substatus, out subcontent, out subp);
+                            double subdis = p0.GetDistance2dBetweenTwoPoint(subp);
+                            if (subdis < mindis)
+                            {
+                                mindis = subdis;
+                                mindisId = subobj.ObjectId;
+                            }
+                        }
                     }
                     catch
                     {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
@@ -63,10 +64,28 @@ namespace GLTools
             return VsToe.Y > 0 ? temp.GetAngleTo(VsToe) : -temp.GetAngleTo(VsToe);
         }
 
+        /// <summary>
+        /// 获取两点的3d距离
+        /// </summary>
+        /// <param name="point1">第一个点</param>
+        /// <param name="point2">第二个点</param>
+        /// <returns></returns>
         public static double GetDistanceBetweenTwoPoint(this Point3d point1, Point3d point2)
         {
             return (Math.Sqrt(Math.Pow((point1.X - point2.X), 2) + Math.Pow((point1.Y - point2.Y), 2) + Math.Pow((point1.Z + point2.Z), 2)));
         }
+
+        /// <summary>
+        /// 获取两点的2d距离
+        /// </summary>
+        /// <param name="point1">第一个点</param>
+        /// <param name="point2">第二个点</param>
+        /// <returns></returns>
+        public static double GetDistance2dBetweenTwoPoint(this Point3d point1, Point3d point2)
+        {
+            return (Math.Sqrt(Math.Pow((point1.X - point2.X), 2) + Math.Pow((point1.Y - point2.Y), 2)));
+        }
+
 
         /// <summary>
         /// 获取两点的中心点
@@ -97,6 +116,31 @@ namespace GLTools
                 // 关闭事务
             }
         }
-          
+
+        /// <summary>
+        /// 判断文字是否为桩号
+        /// </summary>
+        public static bool IsMileageNumber(this string str)
+        {
+            string pattern = @"[A-Z][0-9]+[+][0-9]{3}";
+            Regex regex = new Regex(pattern);
+            return regex.IsMatch(str);
+        }
+
+        /// <summary>
+        /// 判断文字是否为节点名称
+        /// </summary>
+        public static bool IsBuildingName(this string str)
+        {
+            string[] KeyNames = { "口", "缝", "端头井", "变坡", "防火墙"};
+            int KeyNameCounts = KeyNames.Count();
+            bool[] Flags = new bool[KeyNameCounts];
+            for(int i=0;i< KeyNameCounts; i++)
+            {
+                if (str.Contains(KeyNames[i])) Flags[i] = true;
+            }
+            return Flags.Contains(true);
+        }
+
     }
 }
