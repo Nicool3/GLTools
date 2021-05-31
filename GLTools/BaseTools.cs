@@ -122,9 +122,19 @@ namespace GLTools
         /// </summary>
         public static bool IsMileageNumber(this string str)
         {
-            string pattern = @"[A-Z][0-9]+[+][0-9]{3}";
+            string pattern = @"[A-G][0-9]+[+][0-9]{3}[.]?[0-9]*";
             Regex regex = new Regex(pattern);
             return regex.IsMatch(str);
+        }
+
+        /// <summary>
+        /// 返回文字中的桩号内容
+        /// </summary>
+        public static string FindMileageNumber(this string str)
+        {
+            string pattern = @"[A-G][0-9]+[+][0-9]{3}[.]?[0-9]*";
+            Regex regex = new Regex(pattern);
+            return regex.Match(str).Value;
         }
 
         /// <summary>

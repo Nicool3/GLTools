@@ -19,7 +19,7 @@ namespace GLTools
         /// <summary>
         /// 测试
         /// </summary>
-        [CommandMethod("JDJD")]
+        [CommandMethod("ZHZH")]
         public void test()
         {
             // 获取当前文档和数据库
@@ -36,7 +36,7 @@ namespace GLTools
             Point3d p0 = new Point3d(0, 0, 0);
 
             objid1.GetTextAttr(out status0, out content0, out p0);
-            ed.WriteMessage(content0.IsBuildingName().ToString());
+            ed.WriteMessage(content0.FindMileageNumber());
 
         }
 
@@ -59,20 +59,8 @@ namespace GLTools
             SelectionFilter selFtrText = strlist.GetTypeFilter("OR");
             SelectionSet ss = doc.GetSelectionSet("请选择节点文字", selFtrText);
 
-            Table table = new Table();
-            Point3d position = ed.GetPointOnScreen("请指定表格插入点: ");
-            table.Position = position; // 设置插入点
-            table.SetSize(ss.Count+1, 2); // 表格大小
-            table.CellType(1, 1);
-            table.Cells.TextStyleId = db.GetTextStyleId("SMEDI");
-            table.Cells.TextHeight = 3.5;
-            table.Cells.Alignment = CellAlignment.MiddleCenter;
-            table.SetRowHeight(6); // 设置行高
-            table.SetColumnWidth(50); // 设置列宽
-
-            table.Cells[0, 0].TextString = "节点汇总表";
-
-            int i = 1;
+            List<string> namelist = new List<string> { };
+            List<string> mileagelist = new List<string> { };
 
             foreach (SelectedObject obj in ss)
             {
@@ -83,30 +71,58 @@ namespace GLTools
                     Point3d p0 = new Point3d(0, 0, 0);
                     try{
                         obj.ObjectId.GetTextAttr(out status0, out content0, out p0);
+                        // 如果文字中不包含构筑物内容则跳过
+                        if (content0.IsBuildingName() == false) continue;
+                        // 如果文字中包含桩号则记录
+                        if (content0.IsMileageNumber() == true)
+                        {
+                            namelist.Add(content0.Split(' ')[0]);
+                            mileagelist.Add(content0.FindMileageNumber());
+                            continue;
+                        }
                         double mindis = 100;
-                        ObjectId mindisId = ObjectId.Null;
+                        string mincontent = "";
                         foreach (SelectedObject subobj in ss)
                         {
                             bool substatus = false;
                             string subcontent = "";
                             Point3d subp = new Point3d(0, 0, 0);
                             subobj.ObjectId.GetTextAttr(out substatus, out subcontent, out subp);
+                            if (subcontent.IsMileageNumber() == false) continue;
                             double subdis = p0.GetDistance2dBetweenTwoPoint(subp);
-                            if (subdis < mindis)
+                            if (subdis < mindis && subdis > 0.01)
                             {
                                 mindis = subdis;
-                                mindisId = subobj.ObjectId;
+                                mincontent = subcontent;
                             }
                         }
+                        namelist.Add(content0);
+                        mileagelist.Add(mincontent);
                     }
                     catch
                     {
                         ed.WriteMessage("\n出现错误! ");
                     }
-                    table.Cells[i, 0].TextString = content0;
-                    table.Cells[i, 1].TextString = p0.X.ToString();
                 }
-                i++;
+            }
+
+            Table table = new Table();
+            Point3d position = ed.GetPointOnScreen("请指定表格插入点: ");
+            table.Position = position; // 设置插入点
+            table.SetSize(namelist.Count() + 1, 2); // 表格大小
+            table.CellType(1, 1);
+            table.Cells.TextStyleId = db.GetTextStyleId("SMEDI");
+            table.Cells.TextHeight = 3.5;
+            table.Cells.Alignment = CellAlignment.MiddleCenter;
+            table.SetRowHeight(6); // 设置行高
+            table.SetColumnWidth(50); // 设置列宽
+
+            table.Cells[0, 0].TextString = "节点汇总表";
+
+            for (int i = 1; i <= namelist.Count(); i++)
+            {
+                table.Cells[i, 0].TextString = namelist[i-1];
+                table.Cells[i, 1].TextString = mileagelist[i-1];
             }
 
             db.AddEntityToModeSpace(table);
