@@ -88,6 +88,7 @@
   <ItemGroup>
     <Compile Include="AddEntityTools.cs" />
     <Compile Include="BaseTools.cs" />
+    <Compile Include="BlockTools.cs" />
     <Compile Include="EditEntityTools.cs" />
     <Compile Include="GetObjectTools.cs" />
     <Compile Include="GLCommandTools.cs" />
