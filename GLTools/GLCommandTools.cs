@@ -16,8 +16,7 @@ namespace GLTools
 {
     public class GLCommandTools
     {
-
-
+       
         /// <summary>
         /// 测试
         /// </summary>

@@ -38,6 +38,17 @@ namespace GLTools
         }
 
         /// <summary>
+        /// 输入字符串
+        /// </summary>
+        public static string GetStringOnScreen(this Editor ed, string message)
+        {
+            PromptResult Res;
+            PromptStringOptions Opts = new PromptStringOptions(message);
+            Res = ed.GetString(Opts);
+            return Res.StringResult;
+        }
+
+        /// <summary>
         /// 输入关键字
         /// </summary>
         public static bool GetKeywordOnScreen(this Editor ed, string message)
@@ -57,7 +68,7 @@ namespace GLTools
         /// <summary>
         /// 获取选择集
         /// </summary>
-        public static SelectionSet GetSelectionSet(this Document doc, string message, SelectionFilter selFtr)
+        public static SelectionSet GetSelectionSet(this Document doc, string message, SelectionFilter selFtr=null)
         {
             Database db = doc.Database;
 
