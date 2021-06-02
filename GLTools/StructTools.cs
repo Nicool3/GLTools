@@ -28,10 +28,11 @@ namespace GLTools
     /// <summary>
     /// 定义文字基础属性结构体
     /// </summary>
-    public struct TextBasicData
+    public struct TextData
     {
         public ObjectId TextId;
         public string Content;
+        public Point3d Position;
         public double X;
         public double Y;
     }
@@ -39,13 +40,25 @@ namespace GLTools
     /// <summary>
     /// 定义线基础属性结构体
     /// </summary>
-    public struct LineBasicData
+    public struct LineData
     {
         public ObjectId LineId;
         public Point3d StartPoint;
         public Point3d EndPoint;
         public double Length;
         public double Orientation;
+    }
+
+    /// <summary>
+    /// 定义通用图素基础属性结构体
+    /// </summary>
+    public struct BasicEntityData
+    {
+        public ObjectId Id;
+        public string Type;
+        public Point3d Position;
+        public int Orientation;
+
     }
 
     public static partial class StructTools
@@ -79,9 +92,9 @@ namespace GLTools
         /// <summary>
         /// 获取文字基础属性
         /// </summary>
-        public static TextBasicData GetTextBasicData(this Database db, ObjectId Id)
+        public static TextData GetTextData(this Database db, ObjectId Id)
         {
-            TextBasicData data = new TextBasicData();
+            TextData data = new TextData();
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
                 Entity ent = trans.GetObject(Id, OpenMode.ForRead) as Entity;
@@ -91,6 +104,7 @@ namespace GLTools
                 {
                     DBText text = ent as DBText;
                     data.Content = text.TextString;
+                    data.Position = text.Position;
                     data.X = text.Position.X;
                     data.Y = text.Position.Y;
                 }
@@ -98,6 +112,7 @@ namespace GLTools
                 {
                     MText mtext = ent as MText;
                     data.Content = mtext.Text;
+                    data.Position = mtext.Location;
                     data.X = mtext.Location.X;
                     data.Y = mtext.Location.Y;
                 }
@@ -109,9 +124,9 @@ namespace GLTools
         /// <summary>
         /// 获取直线基础属性
         /// </summary>
-        public static LineBasicData GetLineBasicData(this Database db, ObjectId Id)
+        public static LineData GetLineData(this Database db, ObjectId Id)
         {
-            LineBasicData data = new LineBasicData();
+            LineData data = new LineData();
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
                 Entity ent = trans.GetObject(Id, OpenMode.ForRead) as Entity;
@@ -134,6 +149,38 @@ namespace GLTools
                     data.Orientation = Math.Asin((data.EndPoint.Y - data.StartPoint.Y) / data.Length);
                 }
                 trans.Commit();
+            }
+            return data;
+        }
+
+        /// <summary>
+        /// 获取通用图素的属性
+        /// </summary>
+        public static BasicEntityData GetBasicEntityData(this Database db, ObjectId Id)
+        {
+            BasicEntityData data = new BasicEntityData();
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                Entity ent = trans.GetObject(Id, OpenMode.ForRead) as Entity;
+                data.Id = Id;
+                if (ent != null && ent.GetType() == typeof(Line))
+                {
+                    Line line = ent as Line;
+                    data.Type = "LINE";
+                    data.Position = line.StartPoint;
+                    data.Orientation = (int)Math.Sin(line.Angle);
+                }
+                else if (ent != null && ent.GetType() == typeof(DBText))
+                {
+                    DBText text = ent as DBText;
+                    data.Type = "TEXT";
+                    data.Position = text.Position;
+                    data.Orientation = (int)Math.Sin(text.Rotation);
+                }
+                else
+                {
+                    data.Type = "UNSUPPORTED";
+                }
             }
             return data;
         }

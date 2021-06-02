@@ -54,14 +54,16 @@ namespace GLTools
                 // 菜单名称
                 myMenu = acadApp.MenuGroups.Item(0).Menus.Add("管廊纵断面工具");
 
-                myMenu.AddMenuItem(myMenu.Count, "测试程序", "CSCS "); //每个命令后面有一个空格，相当于咱们输入命令按空格
+                myMenu.AddMenuItem(myMenu.Count, "测试程序", "CSCS ");
                 myMenu.AddMenuItem(myMenu.Count, "标高及桩号初始化", "GLCSH ");
                 myMenu.AddMenuItem(myMenu.Count, "两行数值相减", "SZXJ ");
+                myMenu.AddMenuItem(myMenu.Count, "生成节点桩号", "JDZH ");
+                myMenu.AddMenuItem(myMenu.Count, "拾取线生成标高", "QXBG ");
 
                 //开始加子菜单栏
-                AcadPopupMenu subMenu = myMenu.AddSubMenu(myMenu.Count, "标高及桩号初始化s");  //子菜单对象
-                subMenu.AddMenuItem(myMenu.Count, "标高及桩号初始化1", "GLCSH ");
-                subMenu.AddMenuItem(myMenu.Count, "标高及桩号初始化2", "GLCSH ");
+                AcadPopupMenu subMenu = myMenu.AddSubMenu(myMenu.Count, "图号重排");  //子菜单对象
+                subMenu.AddMenuItem(myMenu.Count, "按行重排", "THCP R ");
+                subMenu.AddMenuItem(myMenu.Count, "按列重排", "THCP C ");
                 myMenu.AddSeparator(myMenu.Count); //加入分割符号
                 //结束加子菜单栏
 

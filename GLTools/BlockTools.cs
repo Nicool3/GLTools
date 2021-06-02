@@ -13,9 +13,32 @@ using Autodesk.AutoCAD.EditorInput;
 
 namespace GLTools
 {
-
     public partial class BlockTools
     {
+        /// <summary>
+        /// 通用图素列表排序
+        /// </summary>
+        public List<BasicEntityData> SortEntityDataList(List<BasicEntityData> EntityList, string method = "Y")
+        {
+            List<BasicEntityData> lst = new List<BasicEntityData>(EntityList);
+            var result = lst;
+            switch (method)
+            {
+                case "Y":
+                    result = lst.OrderBy(s => s.Position.X).ToList();
+                    break;
+
+                case "X":
+                    result = lst.OrderByDescending(s => s.Position.Y).ToList();
+                    break;
+
+                default:
+                    result = lst;
+                    break;
+            }
+            return result;
+        }
+
         /// <summary>
         /// 块参照列表排序
         /// </summary>
@@ -77,7 +100,7 @@ namespace GLTools
         }
 
         /// <summary>
-        /// 测试
+        /// 图号重排
         /// </summary>
         [CommandMethod("THCP")]
         public void SortDrawingNumber()
@@ -86,6 +109,8 @@ namespace GLTools
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor ed = doc.Editor;
+
+            string method = ed.GetStringKeywordOnScreen("请选择重排方式: ", "RowFirst", "按行(R)", "ColumnFirst", "按列(C)");
 
             List<BlockData> lst = new List<BlockData>();
 
@@ -100,12 +125,10 @@ namespace GLTools
                     if (data.ProjectName!=null) lst.Add(data);
                 }
 
-                string method = ed.GetStringKeywordOnScreen("共找到"+ lst.Count.ToString() +"个图框, 请选择重排方式: ", "RowFirst", "按行(R)", "ColumnFirst", "按列(C)");
-
-                if (method != null)
+                if (method != null && lst.Count>0)
                 {
                     lst = SortBlockDataList(lst, method);
-                    string str = ed.GetStringOnScreen("\n请输入起始的完整图号: ");
+                    string str = ed.GetStringOnScreen("\n共找到"+ lst.Count.ToString() +"个图框, 请输入起始的完整图号: ");
 
                     RenameDrawingNumber(db, lst, str);
                     ed.WriteMessage("\n修改完成! ");

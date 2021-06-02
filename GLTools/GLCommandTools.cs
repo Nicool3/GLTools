@@ -16,11 +16,11 @@ namespace GLTools
 {
     public class GLCommandTools
     {
-       
+
         /// <summary>
         /// 测试
         /// </summary>
-        [CommandMethod("ZHZH")]
+        [CommandMethod("CSCS")]
         public void test()
         {
             // 获取当前文档和数据库
@@ -28,124 +28,44 @@ namespace GLTools
             Database db = doc.Database;
             Editor ed = doc.Editor;
 
-            PromptEntityOptions peo1 = new PromptEntityOptions("/n请选择: ");
-            PromptEntityResult per1 = ed.GetEntity(peo1);
-            if (per1.Status != PromptStatus.OK) { return; }
-            ObjectId objid1 = per1.ObjectId;
-            bool status0 = false;
-            string content0 = "";
-            Point3d p0 = new Point3d(0, 0, 0);
+            // 单行文字及直线过滤器
+            List<string> lst = new List<string> { "TEXT", "LINE"};
+            SelectionFilter selftr = lst.GetTypeFilter("OR");
 
-            objid1.GetTextAttr(out status0, out content0, out p0);
-            ed.WriteMessage(content0.FindMileageNumber());
-
-        }
-
-        /// <summary>
-        /// 测试
-        /// </summary>
-        [CommandMethod("CSCS")]
-        public void test0()
-        {
-            // 获取当前文档和数据库
-            Document doc = Application.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor ed = doc.Editor;
-
-            // 平面图中需将坐标系置为WCS
-            ed.CurrentUserCoordinateSystem = Matrix3d.Identity;
-
-            // 文字过滤器
-            List<string> strlist = new List<string> { "TEXT", "MTEXT" };
-            SelectionFilter selFtrText = strlist.GetTypeFilter("OR");
-            SelectionSet ss = doc.GetSelectionSet("请选择节点文字", selFtrText);
-
-            List<string> namelist = new List<string> { };
-            List<string> mileagelist = new List<string> { };
-
-            foreach (SelectedObject obj in ss)
+            SelectionSet ss = doc.GetSelectionSet("请选择直线及文字", selftr);
+            if (ss != null)
             {
-                if (obj != null)
+                List<BasicEntityData> entlst = new List<BasicEntityData>();
+                List<int> orientlst = new List<int>();
+                foreach (SelectedObject obj in ss)
                 {
-                    bool status0 = false;
-                    string content0 = "";
-                    Point3d p0 = new Point3d(0, 0, 0);
-                    try{
-                        obj.ObjectId.GetTextAttr(out status0, out content0, out p0);
-                        // 如果文字中不包含构筑物内容则跳过
-                        if (content0.IsBuildingName() == false) continue;
-                        // 如果文字中包含桩号则记录
-                        if (content0.IsMileageNumber() == true)
-                        {
-                            namelist.Add(content0.Split(' ')[0]);
-                            mileagelist.Add(content0.FindMileageNumber());
-                            continue;
-                        }
-                        double mindis = 100;
-                        string mincontent = "";
-                        foreach (SelectedObject subobj in ss)
-                        {
-                            bool substatus = false;
-                            string subcontent = "";
-                            Point3d subp = new Point3d(0, 0, 0);
-                            subobj.ObjectId.GetTextAttr(out substatus, out subcontent, out subp);
-                            if (subcontent.IsMileageNumber() == false) continue;
-                            double subdis = p0.GetDistance2dBetweenTwoPoint(subp);
-                            if (subdis < mindis && subdis > 0.01)
-                            {
-                                mindis = subdis;
-                                mincontent = subcontent;
-                            }
-                        }
-                        namelist.Add(content0);
-                        mileagelist.Add(mincontent);
-                    }
-                    catch
+                    if (obj != null)
                     {
-                        ed.WriteMessage("\n出现错误! ");
+                        entlst.Add(db.GetBasicEntityData(obj.ObjectId));
+                        orientlst.Add(db.GetBasicEntityData(obj.ObjectId).Orientation);
                     }
                 }
+
+                // 检查是否元素均为同一方向
+                HashSet<int> orientset = new HashSet<int>(orientlst);
+                if (orientset.Count() == 1)
+                {
+                    string method = orientset.Contains(0) ? "X":"Y";
+                    BlockTools tool = new BlockTools();
+                    List<BasicEntityData> entlst_sorted = tool.SortEntityDataList(entlst, method);
+
+                    foreach (BasicEntityData entity in entlst_sorted)
+                    {
+                        ed.WriteMessage(entity.Type);
+                        ed.WriteMessage(entity.Position.ToString());
+                    }
+                }
+                else
+                {
+                    ed.WriteMessage("\n所选元素方向不一致, 请重新选择! ");
+                }
+
             }
-
-            Table table = new Table();
-            Point3d position = ed.GetPointOnScreen("请指定表格插入点: ");
-            table.Position = position; // 设置插入点
-            table.SetSize(namelist.Count() + 1, 2); // 表格大小
-            table.CellType(1, 1);
-            table.Cells.TextStyleId = db.GetTextStyleId("SMEDI");
-            table.Cells.TextHeight = 3.5;
-            table.Cells.Alignment = CellAlignment.MiddleCenter;
-            table.SetRowHeight(6); // 设置行高
-            table.SetColumnWidth(50); // 设置列宽
-
-            table.Cells[0, 0].TextString = "节点汇总表";
-
-            for (int i = 1; i <= namelist.Count(); i++)
-            {
-                table.Cells[i, 0].TextString = namelist[i-1];
-                table.Cells[i, 1].TextString = mileagelist[i-1];
-            }
-
-            db.AddEntityToModeSpace(table);
-
-            //PromptEntityOptions peo1 = new PromptEntityOptions("/n请选择第一条曲线: ");
-            //PromptEntityResult per1 = ed.GetEntity(peo1);
-            //if (per1.Status != PromptStatus.OK) { return; }
-            //ObjectId objid1 = per1.ObjectId;
-
-            //PromptEntityOptions peo2 = new PromptEntityOptions("/n请选择第二条曲线: ");
-            //PromptEntityResult per2 = ed.GetEntity(peo2);
-            //if (per2.Status != PromptStatus.OK) { return; }
-            //ObjectId objid2 = per2.ObjectId;
-
-            //Point3d m_pt = db.GetLineIntersection(objid1, objid2);
-            //ed.WriteMessage("/n第一条曲线与第二条曲线交点:{0}", m_pt);
-
-            //db.AddCircleModeSpace(position, 1200);
-            //db.SetTextStyleCurrent("SMEDI");
-            //db.AddTextToModeSpace("DN1200", position);
-            //ed.WriteMessage("\n绘制完成");
-
         }
 
         /// <summary>
@@ -217,15 +137,11 @@ namespace GLTools
 
             if (ss1 != null && ss2 != null && ss3 != null && ss1.Count == ss2.Count && ss3.Count == 2)
             {
-                bool status1, status2;
-                Point3d startp1, endp1, startp2, endp2;
-                LineBasicData l1, l2;
 
-                l1 = db.GetLine
-                //ObjectId lineId1 = ss3.GetObjectIds()[0].GetLineAttr(out status1, out startp1, out endp1);
-                //ObjectId lineId2 = ss3.GetObjectIds()[1].GetLineAttr(out status2, out startp2, out endp2);
+                LineData l1 = db.GetLineData(ss3.GetObjectIds()[0]);
+                LineData l2 = db.GetLineData(ss3.GetObjectIds()[1]);
 
-                double insertpy = (startp1.Y + startp2.Y) / 2;
+                double insertpy = (l1.StartPoint.Y + l2.StartPoint.Y) / 2;
 
                 // 遍历选择集内的对象
                 for (int i = 0; i < ss1.Count; i++)
@@ -233,23 +149,131 @@ namespace GLTools
                     // 确认返回的是合法的 SelectedObject 对象
                     if (ss1.GetObjectIds()[i] != null & ss2.GetObjectIds()[i] != null)
                     {
-                        bool tstatus1, tstatus2;
-                        string content1, content2;
-                        Point3d position1, position2;
+                        TextData t1 = db.GetTextData(ss1.GetObjectIds()[i]);
+                        TextData t2 = db.GetTextData(ss2.GetObjectIds()[i]);
 
-                        ObjectId textId1 = ss1.GetObjectIds()[i].GetTextAttr(out tstatus1, out content1, out position1);
-                        ObjectId textId2 = ss2.GetObjectIds()[i].GetTextAttr(out tstatus2, out content2, out position2);
-
-                        if (tstatus1 == true && tstatus2 == true)
+                        try
                         {
-                            Point3d insertp = new Point3d(position1.X, insertpy, position1.Z);
-                            double result = Convert.ToDouble(content1) - Convert.ToDouble(content2);
+                            Point3d insertp = new Point3d(t1.Position.X, insertpy, t1.Position.Z);
+                            double result = Convert.ToDouble(t1.Content) - Convert.ToDouble(t2.Content);
                             db.AddTextToModeSpace(result.ToString("#.000"), insertp, 3.5, Math.PI*0.5);
+                        }
+                        catch
+                        {
+                            ed.WriteMessage("出现错误! ");
                         }
                     }
                 }
             }
             else ed.WriteMessage("操作有误或两次选取数字数量不符, 请重新选取! ");
+        }
+
+        /// <summary>
+        /// 管廊平面工具-生成节点桩号表格
+        /// </summary>
+        [CommandMethod("JDZH")]
+        public void create_jd_zh()
+        {
+            // 获取当前文档和数据库
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+            // 平面图中需将坐标系置为WCS
+            ed.CurrentUserCoordinateSystem = Matrix3d.Identity;
+
+            // 文字过滤器
+            List<string> strlist = new List<string> { "TEXT", "MTEXT" };
+            SelectionFilter selFtrText = strlist.GetTypeFilter("OR");
+            SelectionSet ss = doc.GetSelectionSet("请选择节点文字", selFtrText);
+
+            List<string> namelist = new List<string> { };
+            List<string> mileagelist = new List<string> { };
+
+            foreach (SelectedObject obj in ss)
+            {
+                if (obj != null)
+                {
+                    try
+                    {
+                        TextData data = db.GetTextData(obj.ObjectId);
+                        // 如果文字中不包含构筑物内容则跳过
+                        if (data.Content.IsBuildingName() == false) continue;
+                        // 如果文字中包含桩号则记录
+                        if (data.Content.IsMileageNumber() == true)
+                        {
+                            namelist.Add(data.Content.Split(' ')[0]);
+                            mileagelist.Add(data.Content.FindMileageNumber());
+                            continue;
+                        }
+                        double mindis = 100;
+                        string mincontent = "";
+                        foreach (SelectedObject subobj in ss)
+                        {
+                            TextData subdata = db.GetTextData(subobj.ObjectId);
+                            if (subdata.Content.IsMileageNumber() == false) continue;
+                            double subdis = data.Position.GetDistance2dBetweenTwoPoint(subdata.Position);
+                            if (subdis < mindis && subdis > 0.01)
+                            {
+                                mindis = subdis;
+                                mincontent = subdata.Content;
+                            }
+                        }
+                        namelist.Add(data.Content);
+                        mileagelist.Add(mincontent);
+                    }
+                    catch
+                    {
+                        ed.WriteMessage("\n出现错误! ");
+                    }
+                }
+            }
+
+            Table table = new Table();
+            Point3d position = ed.GetPointOnScreen("请指定表格插入点: ");
+            table.Position = position; // 设置插入点
+            table.SetSize(namelist.Count() + 1, 2); // 表格大小
+            table.CellType(1, 1);
+            table.Cells.TextStyleId = db.GetTextStyleId("SMEDI");
+            table.Cells.TextHeight = 3.5;
+            table.Cells.Alignment = CellAlignment.MiddleCenter;
+            table.SetRowHeight(6); // 设置行高
+            table.SetColumnWidth(50); // 设置列宽
+
+            table.Cells[0, 0].TextString = "节点汇总表";
+
+            for (int i = 1; i <= namelist.Count(); i++)
+            {
+                table.Cells[i, 0].TextString = namelist[i - 1];
+                table.Cells[i, 1].TextString = mileagelist[i - 1];
+            }
+
+            db.AddEntityToModeSpace(table);
+        }
+
+        /// <summary>
+        /// 管廊纵断面工具-拾取线生成桩号处管廊标高
+        /// </summary>
+        [CommandMethod("QXBG")]
+        public void create_bg_for_line()
+        {
+            // 获取当前文档和数据库
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+            PromptEntityOptions peo1 = new PromptEntityOptions("/n请选择第一条曲线: ");
+            PromptEntityResult per1 = ed.GetEntity(peo1);
+            if (per1.Status != PromptStatus.OK) { return; }
+            ObjectId objid1 = per1.ObjectId;
+
+            PromptEntityOptions peo2 = new PromptEntityOptions("/n请选择第二条曲线: ");
+            PromptEntityResult per2 = ed.GetEntity(peo2);
+            if (per2.Status != PromptStatus.OK) { return; }
+            ObjectId objid2 = per2.ObjectId;
+
+            Point3d m_pt = db.GetLineIntersection(objid1, objid2);
+            ed.WriteMessage("/n第一条曲线与第二条曲线交点:{0}", m_pt);
         }
     }
 }
