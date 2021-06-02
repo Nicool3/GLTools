@@ -11,6 +11,7 @@ using Autodesk.AutoCAD.Geometry;
 
 namespace GLTools
 {
+    
     public static partial class GetObjectTools
     {
         /// <summary>
@@ -49,9 +50,9 @@ namespace GLTools
         }
 
         /// <summary>
-        /// 输入关键字
+        /// 输入布尔类型关键字
         /// </summary>
-        public static bool GetKeywordOnScreen(this Editor ed, string message)
+        public static bool GetBoolKeywordOnScreen(this Editor ed, string message)
         {
             PromptKeywordOptions Opts = new PromptKeywordOptions("");
             Opts.Message = message;
@@ -63,6 +64,35 @@ namespace GLTools
             PromptResult Res = ed.GetKeywords(Opts);
             if (Res.StringResult == "Y") return true;
             else return false;
+        }
+
+        /// <summary>
+        /// 输入字符串类型关键字
+        /// </summary>
+        public static string GetStringKeywordOnScreen(this Editor ed, string message,
+            string str1, string str1display, string str2, string str2display)
+        {
+            PromptKeywordOptions Opts = new PromptKeywordOptions(message);
+            Opts.Keywords.Add(str1, str1, str1display);
+            Opts.Keywords.Add(str2, str2, str2display);
+            Opts.Keywords.Add("Esc", "Esc", "退出(Esc)");
+            Opts.Keywords.Default = str1;
+            Opts.AllowNone = true;
+
+            PromptResult Res = ed.GetKeywords(Opts);
+            switch (Res.Status)
+            {
+                case PromptStatus.OK:
+                    return Res.StringResult;
+
+                case PromptStatus.Cancel:
+                    return null;
+
+                default:
+                    return null;
+
+            }
+            
         }
 
         /// <summary>
@@ -84,89 +114,18 @@ namespace GLTools
         }
 
         /// <summary>
-        /// 获取单行及多行文字相关属性
+        /// 生成单类型过滤器
         /// </summary>
-        /// <param name="textId">文字对象ID</param>
-        /// <param name="status">读取状态</param>
-        /// <param name="content">文字内容</param>
-        /// <param name="position">文字位置</param>
-        public static ObjectId GetTextAttr(this ObjectId textId, out bool status, out string content, out Point3d position)
+        public static SelectionFilter GetSingleTypeFilter(this string str)
         {
-            // 图形数据库
-            Database db = HostApplicationServices.WorkingDatabase;
-            // 开启事务处理
-            using (Transaction trans = db.TransactionManager.StartTransaction())
-            {
-                Entity ent = trans.GetObject(textId, OpenMode.ForRead) as Entity;
-
-                if (ent != null && ent.GetType() == typeof(DBText))
-                {
-                    DBText text = ent as DBText;
-                    status = true;
-                    content = text.TextString;
-                    position = text.Position;
-                }
-                else if (ent != null && ent.GetType() == typeof(MText))
-                {
-                    MText mtext = ent as MText;
-                    status = true;
-                    content = mtext.Text;
-                    position = mtext.Location;
-                }
-                else
-                {
-                    status = false;
-                    content = "";
-                    position = new Point3d(0, 0, 0);
-                }
-                trans.Commit();
-            }
-            return textId;
+            TypedValue[] typelist = new TypedValue[1];
+            typelist.SetValue(new TypedValue((int)DxfCode.Start, str), 0);
+            SelectionFilter typefilter = new SelectionFilter(typelist);
+            return typefilter;
         }
 
         /// <summary>
-        /// 获取直线及多段线相关属性
-        /// </summary>
-        /// <param name="lineId">直线对象ID"</param>
-        /// <param name="status">读取状态</param>
-        /// <param name="startpoint">直线起点</param>
-        /// <param name="endpoint">直线终点</param>
-        public static ObjectId GetLineAttr(this ObjectId lineId, out bool status, out Point3d startpoint, out Point3d endpoint)
-        {
-            // 图形数据库
-            Database db = HostApplicationServices.WorkingDatabase;
-            // 开启事务处理
-            using (Transaction trans = db.TransactionManager.StartTransaction())
-            {
-                Entity ent = trans.GetObject(lineId, OpenMode.ForRead) as Entity;
-
-                if (ent != null && ent.GetType() == typeof(Line))
-                {
-                    Line line = ent as Line;
-                    status = true;
-                    startpoint = line.StartPoint;
-                    endpoint = line.EndPoint;
-                }
-                else if (ent != null && ent.GetType() == typeof(Polyline))
-                {
-                    Polyline pline = ent as Polyline;
-                    status = true;
-                    startpoint = pline.StartPoint;
-                    endpoint = pline.EndPoint;
-                }
-                else
-                {
-                    status = false;
-                    startpoint = new Point3d(0, 0, 0);
-                    endpoint = new Point3d(0, 0, 0);
-                }
-                trans.Commit();
-            }
-            return lineId;
-        }
-
-        /// <summary>
-        /// 生成过滤器
+        /// 生成多类型过滤器
         /// </summary>
         public static SelectionFilter GetTypeFilter(this List<string> strlist, string opt)
         {

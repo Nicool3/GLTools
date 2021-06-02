@@ -163,7 +163,7 @@ namespace GLTools
             bool overFlag = false;
             if (db.initialized(doc))
             {
-                overFlag = ed.GetKeywordOnScreen("已检测到初始化结果, 是否覆盖? ");
+                overFlag = ed.GetBoolKeywordOnScreen("已检测到初始化结果, 是否覆盖? ");
                 if (overFlag)
                 {
                     db.WriteDataToNOD(ed);
@@ -219,9 +219,11 @@ namespace GLTools
             {
                 bool status1, status2;
                 Point3d startp1, endp1, startp2, endp2;
+                LineBasicData l1, l2;
 
-                ObjectId lineId1 = ss3.GetObjectIds()[0].GetLineAttr(out status1, out startp1, out endp1);
-                ObjectId lineId2 = ss3.GetObjectIds()[1].GetLineAttr(out status2, out startp2, out endp2);
+                l1 = db.GetLine
+                //ObjectId lineId1 = ss3.GetObjectIds()[0].GetLineAttr(out status1, out startp1, out endp1);
+                //ObjectId lineId2 = ss3.GetObjectIds()[1].GetLineAttr(out status2, out startp2, out endp2);
 
                 double insertpy = (startp1.Y + startp2.Y) / 2;
 

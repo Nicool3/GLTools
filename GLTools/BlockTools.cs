@@ -13,48 +13,9 @@ using Autodesk.AutoCAD.EditorInput;
 
 namespace GLTools
 {
-    /// <summary>
-    /// 定义块属性结构体
-    /// </summary>
-    public struct BlockData
+
+    public partial class BlockTools
     {
-        public ObjectId BlockId;
-        public string BlockName;
-        public double X;
-        public double Y;
-        public string ProjectName;
-        public string DrawingName;
-        public string DrawingNumber;
-    }
-
-    public class BlockTools
-    {
-        /// <summary>
-        /// 获取块参照的信息
-        /// </summary>
-        public BlockData GetBlockData(Database db, ObjectId Id)
-        {
-            BlockData data = new BlockData();
-            using (Transaction trans = db.TransactionManager.StartTransaction())
-            {
-                BlockReference br = (BlockReference)Id.GetObject(OpenMode.ForRead);
-                data.BlockId = Id;
-                data.BlockName = br.Name;
-                data.X = br.Position.X;
-                data.Y = br.Position.Y;
-
-                foreach (ObjectId item in br.AttributeCollection)
-                {
-                    AttributeReference AttRef = (AttributeReference)item.GetObject(OpenMode.ForRead);
-                    if (AttRef.Tag.ToString() == "项目名称") data.ProjectName = AttRef.TextString;
-                    else if (AttRef.Tag.ToString() == "图纸名称") data.DrawingName = AttRef.TextString;
-                    else if (AttRef.Tag.ToString() == "图号") data.DrawingNumber = AttRef.TextString;
-                }
-                trans.Commit();
-            }
-            return data;
-        }
-
         /// <summary>
         /// 块参照列表排序
         /// </summary>
@@ -118,8 +79,8 @@ namespace GLTools
         /// <summary>
         /// 测试
         /// </summary>
-        [CommandMethod("TKTK")]
-        public void testTKTK()
+        [CommandMethod("THCP")]
+        public void SortDrawingNumber()
         {
             // 获取当前文档和数据库
             Document doc = Application.DocumentManager.MdiActiveDocument;
@@ -128,17 +89,28 @@ namespace GLTools
 
             List<BlockData> lst = new List<BlockData>();
 
-            SelectionSet ss = doc.GetSelectionSet("请选择");
-            foreach (SelectedObject obj in ss)
+            string blocktype = "INSERT"; 
+            SelectionFilter selFtrBlock = blocktype.GetSingleTypeFilter();
+            SelectionSet ss = doc.GetSelectionSet("请选择图号需要重排的图框", selFtrBlock);
+            if (ss != null)
             {
-                lst.Add(GetBlockData(db, obj.ObjectId));
+                foreach (SelectedObject obj in ss)
+                {
+                    BlockData data = db.GetBlockData(obj.ObjectId);
+                    if (data.ProjectName!=null) lst.Add(data);
+                }
+
+                string method = ed.GetStringKeywordOnScreen("共找到"+ lst.Count.ToString() +"个图框, 请选择重排方式: ", "RowFirst", "按行(R)", "ColumnFirst", "按列(C)");
+
+                if (method != null)
+                {
+                    lst = SortBlockDataList(lst, method);
+                    string str = ed.GetStringOnScreen("\n请输入起始的完整图号: ");
+
+                    RenameDrawingNumber(db, lst, str);
+                    ed.WriteMessage("\n修改完成! ");
+                }
             }
-
-            lst = SortBlockDataList(lst, "RowFirst");
-            string str = ed.GetStringOnScreen("\n请选择: ");
-
-            RenameDrawingNumber(db,lst,str);
-            ed.WriteMessage("\n修改完成! ");
         }
     }
 }
