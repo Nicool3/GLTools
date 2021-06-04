@@ -1,10 +1,13 @@
-﻿using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.Geometry;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Autodesk.AutoCAD.Runtime;
+using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.Geometry;
+using Autodesk.AutoCAD.EditorInput;
 
 namespace GLTools
 {
@@ -171,8 +174,7 @@ namespace GLTools
             }
             return entR;
         }
-
-
+        
 
         /// <summary>
         /// 旋转图形 图形在数据库中
@@ -235,18 +237,29 @@ namespace GLTools
         /// <returns>返回新的图形对象  加入图形数据库的情况</returns>
         public static Entity MirrorEntity(this ObjectId entId, Point3d point1, Point3d point2, bool isEraseSource)
         {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+
+            // 打开当前图形数据库
+            Database db = HostApplicationServices.WorkingDatabase;
+            Editor ed = doc.Editor;
             // 声明一个图形对象用于返回
             Entity entR;
             // 计算镜像的变换矩阵
             Matrix3d mt = Matrix3d.Mirroring(new Line3d(point1, point2));
             // 打开事务处理
-            using (Transaction trans = entId.Database.TransactionManager.StartTransaction())
+            using (Transaction trans = db.TransactionManager.StartTransaction())
             {
+                // 打开块表
+                BlockTable bt = (BlockTable)trans.GetObject(db.BlockTableId, OpenMode.ForRead);
+                // 打开块表记录
+                BlockTableRecord btr = (BlockTableRecord)trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForRead);
+
                 // 判断是否删除原对象
                 if (isEraseSource)
                 {
                     // 打开原对象
-                    Entity ent = (Entity)trans.GetObject(entId, OpenMode.ForWrite);
+                    Entity ent = (Entity)entId.GetObject(OpenMode.ForWrite);
+                    ed.WriteMessage("\n" + Application.GetSystemVariable("MIRRTEXT").ToString());
                     // 执行变换
                     ent.TransformBy(mt);
                     entR = ent;
@@ -255,11 +268,12 @@ namespace GLTools
                 {
 
                     // 打开原对象
-                    Entity ent = (Entity)trans.GetObject(entId, OpenMode.ForRead);
+                    Entity ent = (Entity)entId.GetObject(OpenMode.ForRead);
                     entR = ent.GetTransformedCopy(mt);
                 }
-                return entR;
+                trans.Commit();
             }
+            return entR;
         }
 
 
@@ -273,7 +287,7 @@ namespace GLTools
         /// <returns>返回新的图形对象  没有加入图形数据库的情况</returns>
         public static Entity MirrorEntity(this Entity ent, Point3d point1, Point3d point2, bool isEraseSource)
         {
-
+            
             // 声明一个图形对象用于返回
             Entity entR;
 
@@ -287,8 +301,50 @@ namespace GLTools
             {
                 entR = ent.ObjectId.MirrorEntity(point1, point2, isEraseSource);
             }
+
             return entR;
         }
+
+        /// <summary>
+        /// 镜像文字-关于自身镜像
+        /// </summary>
+        public static Entity MirrorText(this ObjectId entId)
+        {
+            // 打开当前图形数据库
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = HostApplicationServices.WorkingDatabase;
+            Editor ed = doc.Editor;
+
+            // 声明一个图形对象用于返回
+            Entity entR;
+            
+            // 打开事务处理
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                // 打开块表
+                BlockTable bt = (BlockTable)trans.GetObject(db.BlockTableId, OpenMode.ForRead);
+                // 打开块表记录
+                BlockTableRecord btr = (BlockTableRecord)trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForRead);
+                
+                // 打开原对象
+                Entity ent = (Entity)entId.GetObject(OpenMode.ForWrite);
+                Point2d[] ps = db.GetGeometricExtents(ent);
+                TextData tdata = db.GetTextData(entId);
+                double ro = tdata.Rotation;
+
+                // 计算镜像的变换矩阵
+                Point3d p1 = new Point3d((ps[0].X + ps[1].X) / 2, (ps[0].Y + ps[1].Y) / 2, 0);
+                Point3d p2 = new Point3d((ps[0].X + ps[1].X) / 2 + 10 * Math.Cos(ro), (ps[0].Y + ps[1].Y) / 2 + 10 * Math.Sin(ro), 0);
+                Matrix3d mt = Matrix3d.Mirroring(new Line3d(p1, p2));
+                // 执行变换
+                ent.TransformBy(mt);
+                entR = ent;
+                
+                trans.Commit();
+            }
+            return entR;
+        }
+
 
         /// <summary>
         /// 缩放图形 图形已经加到图形数据库中

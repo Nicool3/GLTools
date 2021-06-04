@@ -35,6 +35,7 @@ namespace GLTools
         public Point3d Position;
         public double X;
         public double Y;
+        public double Rotation;
     }
 
     /// <summary>
@@ -107,6 +108,7 @@ namespace GLTools
                     data.Position = text.Position;
                     data.X = text.Position.X;
                     data.Y = text.Position.Y;
+                    data.Rotation = text.Rotation;
                 }
                 else if (ent != null && ent.GetType() == typeof(MText))
                 {
@@ -115,6 +117,7 @@ namespace GLTools
                     data.Position = mtext.Location;
                     data.X = mtext.Location.X;
                     data.Y = mtext.Location.Y;
+                    data.Rotation = mtext.Rotation;
                 }
                 trans.Commit();
             }
@@ -122,7 +125,7 @@ namespace GLTools
         }
 
         /// <summary>
-        /// 获取直线基础属性
+        /// 获取直线及多段线属性
         /// </summary>
         public static LineData GetLineData(this Database db, ObjectId Id)
         {
@@ -138,7 +141,8 @@ namespace GLTools
                     data.StartPoint = line.StartPoint;
                     data.EndPoint = line.EndPoint;
                     data.Length = line.Length;
-                    data.Orientation = Math.Asin((data.EndPoint.Y - data.StartPoint.Y) / data.Length);
+                    data.Orientation = Math.Asin(Math.Sin(line.Angle));
+                    //data.Orientation = Math.Asin((data.EndPoint.Y - data.StartPoint.Y) / data.Length);
                 }
                 else if (ent != null && ent.GetType() == typeof(Polyline))
                 {

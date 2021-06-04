@@ -114,6 +114,74 @@ namespace GLTools
         }
 
         /// <summary>
+        /// 获取实体包围盒-选择集
+        /// </summary>
+        public static Point2d[] GetGeometricExtents(this Database db, SelectionSet sSet)
+        {
+            // 范围对象
+            Extents3d extend = new Extents3d();
+
+            Point2d[] result = new Point2d[2];
+
+            // 判断选择集是否为空
+            if (sSet != null)
+            {
+                // 遍历选择对象
+                foreach (SelectedObject selObj in sSet)
+                {
+                    // 确认返回的是合法的SelectedObject对象  
+                    if (selObj != null) //
+                    {
+                        //开启事务处理
+                        using (Transaction trans = db.TransactionManager.StartTransaction())
+                        {
+                            Entity ent = trans.GetObject(selObj.ObjectId, OpenMode.ForRead) as Entity;
+                            // 获取多个实体合在一起的获取其总范围
+                            extend.AddExtents(ent.GeometricExtents);
+
+                            trans.Commit();
+                        }
+                    }
+                }
+                if (extend != null)
+                {
+                    // 绘制包围盒
+                    result[0] = new Point2d(extend.MinPoint.X, extend.MinPoint.Y);  // 范围最大点
+                    result[1] = new Point2d(extend.MaxPoint.X, extend.MaxPoint.Y);  // 范围最小点
+                    
+                }
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// 获取实体包围盒-实体
+        /// </summary>
+        public static Point2d[] GetGeometricExtents(this Database db, Entity ent)
+        {
+            // 范围对象
+            Extents3d extend = new Extents3d();
+
+            Point2d[] result = new Point2d[2];
+
+            //开启事务处理
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                // 获取多个实体合在一起的获取其总范围
+                extend.AddExtents(ent.GeometricExtents);
+                trans.Commit();
+            }
+
+            if (extend != null)
+            {
+                // 绘制包围盒
+                result[0] = new Point2d(extend.MinPoint.X, extend.MinPoint.Y);  // 范围最大点
+                result[1] = new Point2d(extend.MaxPoint.X, extend.MaxPoint.Y);  // 范围最小点
+            }
+            return result;
+        }
+
+        /// <summary>
         /// 生成单类型过滤器
         /// </summary>
         public static SelectionFilter GetSingleTypeFilter(this string str)

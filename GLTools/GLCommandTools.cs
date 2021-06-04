@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Reflection;
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.EditorInput;
-using Application = Autodesk.AutoCAD.ApplicationServices.Application;
+
 
 [assembly: CommandClass(typeof(GLTools.GLCommandTools))]
 
@@ -16,6 +17,21 @@ namespace GLTools
 {
     public class GLCommandTools
     {
+        // 获取当前文档和数据库
+        Document doc = Application.DocumentManager.MdiActiveDocument;
+        Database db = Application.DocumentManager.MdiActiveDocument.Database;
+        Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+
+        /// <summary>
+        /// 测试
+        /// </summary>
+        [CommandMethod("CCC")]
+        public void testtest()
+        {
+            string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            ed.WriteMessage(version);
+            ed.WriteMessage("Success! ");
+        }
 
         /// <summary>
         /// 测试
@@ -24,48 +40,21 @@ namespace GLTools
         public void test()
         {
             // 获取当前文档和数据库
-            Document doc = Application.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor ed = doc.Editor;
+            
+            Application.SetSystemVariable("MIRRTEXT", 0);
+            ed.WriteMessage("\n"+Application.GetSystemVariable("MIRRTEXT").ToString());
 
-            // 单行文字及直线过滤器
-            List<string> lst = new List<string> { "TEXT", "LINE"};
-            SelectionFilter selftr = lst.GetTypeFilter("OR");
+            PromptEntityOptions peo2 = new PromptEntityOptions("/n请选择文字: ");
+            PromptEntityResult per2 = ed.GetEntity(peo2);
+            if (per2.Status != PromptStatus.OK) { return; }
+            ObjectId objid2 = per2.ObjectId;
 
-            SelectionSet ss = doc.GetSelectionSet("请选择直线及文字", selftr);
-            if (ss != null)
-            {
-                List<BasicEntityData> entlst = new List<BasicEntityData>();
-                List<int> orientlst = new List<int>();
-                foreach (SelectedObject obj in ss)
-                {
-                    if (obj != null)
-                    {
-                        entlst.Add(db.GetBasicEntityData(obj.ObjectId));
-                        orientlst.Add(db.GetBasicEntityData(obj.ObjectId).Orientation);
-                    }
-                }
+            Point3d p1 = ed.GetPointOnScreen("/n请选择第一个点: ");
+            Point3d p2 = ed.GetPointOnScreen("/n请选择第二个点: ");
 
-                // 检查是否元素均为同一方向
-                HashSet<int> orientset = new HashSet<int>(orientlst);
-                if (orientset.Count() == 1)
-                {
-                    string method = orientset.Contains(0) ? "X":"Y";
-                    BlockTools tool = new BlockTools();
-                    List<BasicEntityData> entlst_sorted = tool.SortEntityDataList(entlst, method);
-
-                    foreach (BasicEntityData entity in entlst_sorted)
-                    {
-                        ed.WriteMessage(entity.Type);
-                        ed.WriteMessage(entity.Position.ToString());
-                    }
-                }
-                else
-                {
-                    ed.WriteMessage("\n所选元素方向不一致, 请重新选择! ");
-                }
-
-            }
+            
+            Entity ent = objid2.MirrorEntity(p1, p2, true);
+            Entity entt = objid2.MirrorText();
         }
 
         /// <summary>
@@ -101,10 +90,6 @@ namespace GLTools
         [CommandMethod("SZXJ")]
         public void text_minus()
         {
-            // 获取当前文档和数据库
-            Document doc = Application.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor ed = doc.Editor;
 
             SelectionSet ss1 = null, ss2 = null, ss3 = null;
 
@@ -174,10 +159,6 @@ namespace GLTools
         [CommandMethod("JDZH")]
         public void create_jd_zh()
         {
-            // 获取当前文档和数据库
-            Document doc = Application.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor ed = doc.Editor;
 
             // 平面图中需将坐标系置为WCS
             ed.CurrentUserCoordinateSystem = Matrix3d.Identity;
@@ -257,10 +238,7 @@ namespace GLTools
         [CommandMethod("QXBG")]
         public void create_bg_for_line()
         {
-            // 获取当前文档和数据库
-            Document doc = Application.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor ed = doc.Editor;
+            
 
             PromptEntityOptions peo1 = new PromptEntityOptions("/n请选择第一条曲线: ");
             PromptEntityResult per1 = ed.GetEntity(peo1);
@@ -274,6 +252,84 @@ namespace GLTools
 
             Point3d m_pt = db.GetLineIntersection(objid1, objid2);
             ed.WriteMessage("/n第一条曲线与第二条曲线交点:{0}", m_pt);
+        }
+
+        /// <summary>
+        /// 测试
+        /// </summary>
+        [CommandMethod("WZJX")]
+        public void mirror_text_by_line()
+        {
+
+            // 单行文字及直线过滤器
+            List<string> lst = new List<string> { "TEXT", "LINE" };
+            SelectionFilter selftr = lst.GetTypeFilter("OR");
+
+            SelectionSet ss = doc.GetSelectionSet("请选择直线及文字", selftr);
+            if (ss != null)
+            {
+                List<BasicEntityData> entlst = new List<BasicEntityData>();
+                List<int> orientlst = new List<int>();
+                foreach (SelectedObject obj in ss)
+                {
+                    if (obj != null)
+                    {
+                        entlst.Add(db.GetBasicEntityData(obj.ObjectId));
+                        orientlst.Add(db.GetBasicEntityData(obj.ObjectId).Orientation);
+                    }
+                }
+
+                // 检查是否元素均为同一方向
+                HashSet<int> orientset = new HashSet<int>(orientlst);
+                if (orientset.Count() == 1)
+                {
+                    string method = orientset.Contains(0) ? "X" : "Y";
+                    BlockTools tool = new BlockTools();
+                    List<BasicEntityData> entlst_sorted = tool.SortEntityDataList(entlst, method);
+
+                    int n = entlst_sorted.Count();
+                    if (n % 2 == 0)
+                    {
+                        try
+                        {
+                            for (int i = 0; i < n; i = i + 2)
+                            {
+                                BasicEntityData entity1 = entlst_sorted[i];
+                                BasicEntityData entity2 = entlst_sorted[i + 1];
+                                if (entity1.Type == "TEXT" && entity2.Type == "LINE")
+                                {
+                                    LineData l2 = db.GetLineData(entity2.Id);
+                                    entity1.Id.MirrorEntity(l2.StartPoint, l2.EndPoint, true);
+                                    entity1.Id.MirrorText();
+                                }
+                                else if (entity1.Type == "LINE" && entity2.Type == "TEXT")
+                                {
+                                    LineData l1 = db.GetLineData(entity1.Id);
+                                    entity2.Id.MirrorEntity(l1.StartPoint, l1.EndPoint, true);
+                                    entity2.Id.MirrorText();
+                                }
+                                else
+                                {
+                                    ed.WriteMessage("\n所选文字和直线数量不匹配, 请重新选择! ");
+                                }
+                            }
+                        }
+                        catch (Autodesk.AutoCAD.Runtime.Exception e)
+                        {
+                            throw e;
+                        }
+                    }
+                    else
+                    {
+                        ed.WriteMessage("\n所选文字和直线数量不匹配, 请重新选择! ");
+                    }
+                }
+                else
+                {
+                    ed.WriteMessage("\n所选元素方向不一致, 请重新选择! ");
+                }
+
+            }
         }
     }
 }
