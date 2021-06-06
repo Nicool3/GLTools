@@ -114,6 +114,18 @@ namespace GLTools
         }
 
         /// <summary>
+        /// 获取实体
+        /// </summary>
+        public static ObjectId GetEntityOnScreen(this Document doc, string message)
+        {
+            ObjectId Id = ObjectId.Null;
+            PromptEntityOptions peo = new PromptEntityOptions(message);
+            PromptEntityResult per = doc.Editor.GetEntity(peo);
+            if (per.Status == PromptStatus.OK) Id = per.ObjectId;
+            return Id;
+        }
+
+        /// <summary>
         /// 获取实体包围盒-选择集
         /// </summary>
         public static Point2d[] GetGeometricExtents(this Database db, SelectionSet sSet)

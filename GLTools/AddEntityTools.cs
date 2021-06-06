@@ -450,6 +450,8 @@ namespace GLTools
             // 储存上述结果
             db.WriteNumberToNOD("X1", X1);
             db.WriteNumberToNOD("Y1", Y1);
+            db.WriteNumberToNOD("BG1", BG1);
+            db.WriteNumberToNOD("ZH1", ZH1);
             db.WriteNumberToNOD("SC_BG", SC_BG);
             db.WriteNumberToNOD("SC_ZH", SC_BG);
         }

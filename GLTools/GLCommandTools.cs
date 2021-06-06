@@ -25,12 +25,12 @@ namespace GLTools
         /// <summary>
         /// 测试
         /// </summary>
-        [CommandMethod("CCC")]
+        [CommandMethod("CSVERSION")]
         public void testtest()
         {
             string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
             ed.WriteMessage(version);
-            ed.WriteMessage("Success! ");
+            ed.WriteMessage("CSVERSION_1");
         }
 
         /// <summary>
@@ -39,22 +39,8 @@ namespace GLTools
         [CommandMethod("CSCS")]
         public void test()
         {
-            // 获取当前文档和数据库
-            
-            Application.SetSystemVariable("MIRRTEXT", 0);
-            ed.WriteMessage("\n"+Application.GetSystemVariable("MIRRTEXT").ToString());
-
-            PromptEntityOptions peo2 = new PromptEntityOptions("/n请选择文字: ");
-            PromptEntityResult per2 = ed.GetEntity(peo2);
-            if (per2.Status != PromptStatus.OK) { return; }
-            ObjectId objid2 = per2.ObjectId;
-
-            Point3d p1 = ed.GetPointOnScreen("/n请选择第一个点: ");
-            Point3d p2 = ed.GetPointOnScreen("/n请选择第二个点: ");
-
-            
-            Entity ent = objid2.MirrorEntity(p1, p2, true);
-            Entity entt = objid2.MirrorText();
+            ed.WriteMessage(Math.Abs(Math.Sin(Math.PI*1.5)).ToString());
+            ed.WriteMessage(Math.Sin(Math.PI * 1.5).ToString());
         }
 
         /// <summary>
@@ -92,21 +78,6 @@ namespace GLTools
         {
 
             SelectionSet ss1 = null, ss2 = null, ss3 = null;
-
-            if (db.initialized(doc))
-            {
-                // 读取初始化数据
-                double? X1, Y1, SC_BG, SC_ZH;
-                X1 = db.ReadNumberFromNOD(doc, "X1");
-                Y1 = db.ReadNumberFromNOD(doc, "Y1");
-                SC_BG = db.ReadNumberFromNOD(doc, "SC_BG");
-                SC_ZH = db.ReadNumberFromNOD(doc, "SC_ZH");
-            }
-            else
-            {
-                ed.WriteMessage("\n本图还未进行初始化, 请先对标高和桩号进行初始化");
-                return;
-            }
 
             // 文字过滤器
             List<string> strlist = new List<string> { "TEXT", "MTEXT" };
@@ -238,20 +209,60 @@ namespace GLTools
         [CommandMethod("QXBG")]
         public void create_bg_for_line()
         {
+            if (db.initialized(doc))
+            {
+                // 读取初始化数据
+                double Y1, BG1, SC_BG;
+                try
+                {
+                    Y1 = (double)db.ReadNumberFromNOD(doc, "Y1");
+                    BG1 = (double)db.ReadNumberFromNOD(doc, "BG1");
+                    SC_BG = (double)db.ReadNumberFromNOD(doc, "SC_BG");
+                }
+                catch (Autodesk.AutoCAD.Runtime.Exception e)
+                {
+                    throw e;
+                }
+
+                ObjectId GLLineId = doc.GetEntityOnScreen("请选择管廊线: ");
+                if (GLLineId != ObjectId.Null)
+                {
+                    SelectionSet ssVLine = doc.GetSelectionSet("请选择竖向网格线: ");
+                    if (ssVLine != null)
+                    {
+                        SelectionSet ss2 = doc.GetSelectionSet("请选择插入数字栏两侧边线");
+                        if (ss2 != null && ss2.Count == 2)
+                        {
+                            LineData l1 = db.GetLineData(ss2.GetObjectIds()[0]);
+                            LineData l2 = db.GetLineData(ss2.GetObjectIds()[1]);
+                            double insertpy = (l1.StartPoint.Y + l2.StartPoint.Y) / 2;
+
+                            foreach (ObjectId VLineId in ssVLine.GetObjectIds())
+                            {
+                                Point3d p = db.GetLineIntersection(GLLineId, VLineId);
+                                Point3d insertp = new Point3d(p.X, insertpy, 0);
+                                try
+                                {
+                                    double BG = BG1 + (p.Y - Y1) * SC_BG;
+                                    db.AddTextToModeSpace(BG.ToString("#.000"), insertp, 3.5, Math.PI * 0.5);
+                                }
+                                catch
+                                {
+                                    ed.WriteMessage("出现错误! ");
+                                }
+                            }
+                        }
+                        else ed.WriteMessage("数字栏两侧边线选择有误, 请重新选择! ");
+                    }
+                }
+            }
+            else
+            {
+                ed.WriteMessage("\n本图还未进行初始化, 请先对标高和桩号进行初始化");
+                return;
+            }
+
             
-
-            PromptEntityOptions peo1 = new PromptEntityOptions("/n请选择第一条曲线: ");
-            PromptEntityResult per1 = ed.GetEntity(peo1);
-            if (per1.Status != PromptStatus.OK) { return; }
-            ObjectId objid1 = per1.ObjectId;
-
-            PromptEntityOptions peo2 = new PromptEntityOptions("/n请选择第二条曲线: ");
-            PromptEntityResult per2 = ed.GetEntity(peo2);
-            if (per2.Status != PromptStatus.OK) { return; }
-            ObjectId objid2 = per2.ObjectId;
-
-            Point3d m_pt = db.GetLineIntersection(objid1, objid2);
-            ed.WriteMessage("/n第一条曲线与第二条曲线交点:{0}", m_pt);
         }
 
         /// <summary>

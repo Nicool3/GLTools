@@ -172,7 +172,7 @@ namespace GLTools
                     Line line = ent as Line;
                     data.Type = "LINE";
                     data.Position = line.StartPoint;
-                    data.Orientation = (int)Math.Sin(line.Angle);
+                    data.Orientation = (int)Math.Abs(Math.Sin(line.Angle)); // Only 0 or 1
                 }
                 else if (ent != null && ent.GetType() == typeof(DBText))
                 {
