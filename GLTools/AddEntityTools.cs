@@ -384,7 +384,7 @@ namespace GLTools
         /// <summary>
         /// 存储自定义数据
         /// </summary>
-        public static void WriteNumberToNOD(this Database db, string DataName, double DataNum)
+        public static void WriteNumberToNOD(this Database db, string dataName, double dataValue)
         {
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
@@ -392,9 +392,9 @@ namespace GLTools
                 DBDictionary nod = trans.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForWrite) as DBDictionary;
                 // 自定义数据
                 Xrecord myXrecord = new Xrecord();
-                myXrecord.Data = new ResultBuffer(new TypedValue((int)DxfCode.Real, DataNum));
+                myXrecord.Data = new ResultBuffer(new TypedValue((int)DxfCode.Real, dataValue));
                 // 往命名对象字典中存储自定义数据
-                nod.SetAt(DataName, myXrecord);
+                nod.SetAt(dataName, myXrecord);
                 trans.AddNewlyCreatedDBObject(myXrecord, true);
                 trans.Commit();
             }
@@ -403,7 +403,7 @@ namespace GLTools
         /// <summary>
         /// 读取自定义数据
         /// </summary>
-        public static double? ReadNumberFromNOD(this Database db, Document doc, string DataName)
+        public static double? ReadNumberFromNOD(this Database db, string DataName)
         {
             double? result = null;
             using (Transaction trans = db.TransactionManager.StartTransaction())
@@ -427,46 +427,77 @@ namespace GLTools
         /// </summary>
         public static void WriteDataToNOD(this Database db, Editor ed)
         {
-            Point3d P_BG1, P_BG2, P_ZH1, P_ZH2;
-            double BG1, BG2, ZH1, ZH2, X1, X2, Y1, Y2, SC_BG, SC_ZH;
+            string[] messages = { "选择标高基准点1" , "输入标高基准点1标高: " , "选择标高基准点2", "输入标高基准点2标高: " ,
+                                  "选择桩号基准点1", "输入桩号基准点1桩号(不含字母): ", "选择桩号基准点2", "输入桩号基准点2桩号(不含字母): "};
+            Point3d[] points = new Point3d[4];
+            double[] numbers = new double[4];
 
-            P_BG1 = ed.GetPointOnScreen("\n选择标高基准点1");
-            BG1 = ed.GetNumberOnScreen("\n输入标高基准点1标高: ");
-            Y1 = P_BG1.Y;
-            P_BG2 = ed.GetPointOnScreen("\n选择标高基准点2");
-            BG2 = ed.GetNumberOnScreen("\n输入标高基准点2标高: ");
-            Y2 = P_BG2.Y;
+            Point3d pBG1, pBG2, pZH1, pZH2;
+            double BG1, BG2, ZH1, ZH2;
 
-            P_ZH1 = ed.GetPointOnScreen("\n选择桩号基准点1");
-            ZH1 = ed.GetNumberOnScreen("\n输入桩号基准点1桩号(不含字母): ");
-            X1 = P_ZH1.X;
-            P_ZH2 = ed.GetPointOnScreen("\n选择桩号基准点2");
-            ZH2 = ed.GetNumberOnScreen("\n输入桩号基准点2桩号(不含字母): ");
-            X2 = P_ZH2.X;
+            bool status = true;
+            for (int i = 0; i< 8; i = i + 2)
+            {
+                Point3d? p = ed.GetPointOnScreen(messages[i]);
+                double? num = ed.GetNumberOnScreen(messages[i+1]);
+                if (p != null && num != null)
+                {
+                    try
+                    {
+                        points[i / 2] = (Point3d)p;
+                        numbers[i / 2] = (double)num;
+                    }
+                    catch (Autodesk.AutoCAD.Runtime.Exception e)
+                    {
+                        status = false;
+                        throw e;
+                    }
+                }
+                else
+                {
+                    status = false;
+                    break;
+                }
+            };
 
-            SC_BG = Math.Abs((BG2 - BG1) / (Y2 - Y1));
-            SC_ZH = Math.Abs((ZH2 - ZH1) / (X2 - X1));
+            if(status == true)
+            {
+                pBG1 = points[0];
+                BG1 = numbers[0];
+                pBG2 = points[1];
+                BG2 = numbers[1];
+                pZH1 = points[2];
+                ZH1 = numbers[2];
+                pZH2 = points[3];
+                ZH2 = numbers[3];
 
-            // 储存上述结果
-            db.WriteNumberToNOD("X1", X1);
-            db.WriteNumberToNOD("Y1", Y1);
-            db.WriteNumberToNOD("BG1", BG1);
-            db.WriteNumberToNOD("ZH1", ZH1);
-            db.WriteNumberToNOD("SC_BG", SC_BG);
-            db.WriteNumberToNOD("SC_ZH", SC_BG);
+                // 储存上述结果
+                db.WriteNumberToNOD("X1", pZH1.X);
+                db.WriteNumberToNOD("Y1", pBG1.Y);
+                db.WriteNumberToNOD("BG1", BG1);
+                db.WriteNumberToNOD("ZH1", ZH1);
+                db.WriteNumberToNOD("SC_BG", Math.Abs((BG2 - BG1) / (pBG2.Y - pBG1.Y)));
+                db.WriteNumberToNOD("SC_ZH", Math.Abs((ZH2 - ZH1) / (pZH2.X - pZH1.X)));
+
+                if (db.initialized()) ed.WriteMessage("初始化成功! ");
+            }
+            else
+            {
+                ed.WriteMessage("出现错误, 请重新输入! ");
+            }
         }
 
         /// <summary>
         /// 判断DB中是否已存在经过初始化的数据
         /// </summary>
-        public static bool initialized(this Database db, Document doc)
+        public static bool initialized(this Database db)
         {
             string[] DBNameArray = { "X1", "Y1", "SC_BG", "SC_ZH" };
             double?[] DBNumberArray = new double?[4];
 
             for (int i = 0; i < 4; i++)
             {
-                DBNumberArray[i] = db.ReadNumberFromNOD(doc, DBNameArray[i]);
+                DBNumberArray[i] = db.ReadNumberFromNOD(DBNameArray[i]);
             }
             bool emptyFlag = DBNumberArray.Any(x => string.IsNullOrEmpty(x.ToString()));
             return !emptyFlag;

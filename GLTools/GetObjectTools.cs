@@ -17,25 +17,25 @@ namespace GLTools
         /// <summary>
         /// 屏幕取点
         /// </summary>
-        public static Point3d GetPointOnScreen(this Editor ed, string message)
+        public static Point3d? GetPointOnScreen(this Editor ed, string message)
         {
             PromptPointResult Res;
-            PromptPointOptions Opts = new PromptPointOptions("");
-            Opts.Message = message;
+            PromptPointOptions Opts = new PromptPointOptions(message);
             Res = ed.GetPoint(Opts);
-            return Res.Value;
+            if (Res.Status == PromptStatus.OK) return Res.Value;
+            else return null;
         }
 
         /// <summary>
         /// 输入数字
         /// </summary>
-        public static double GetNumberOnScreen(this Editor ed, string message)
+        public static double? GetNumberOnScreen(this Editor ed, string message)
         {
             PromptDoubleResult Res;
-            PromptDoubleOptions Opts = new PromptDoubleOptions("");
-            Opts.Message = message;
+            PromptDoubleOptions Opts = new PromptDoubleOptions(message);
             Res = ed.GetDouble(Opts);
-            return Res.Value;
+            if (Res.Status == PromptStatus.OK) return Res.Value;
+            else return null;
         }
 
         /// <summary>
@@ -46,7 +46,8 @@ namespace GLTools
             PromptResult Res;
             PromptStringOptions Opts = new PromptStringOptions(message);
             Res = ed.GetString(Opts);
-            return Res.StringResult;
+            if (Res.Status == PromptStatus.OK) return Res.StringResult;
+            else return null;
         }
 
         /// <summary>
@@ -92,7 +93,6 @@ namespace GLTools
                     return null;
 
             }
-            
         }
 
         /// <summary>

@@ -26,7 +26,7 @@ namespace GLTools
     }
 
     /// <summary>
-    /// 定义文字基础属性结构体
+    /// 定义文字属性结构体
     /// </summary>
     public struct TextData
     {
@@ -39,7 +39,7 @@ namespace GLTools
     }
 
     /// <summary>
-    /// 定义线基础属性结构体
+    /// 定义线属性结构体
     /// </summary>
     public struct LineData
     {
@@ -59,8 +59,16 @@ namespace GLTools
         public string Type;
         public Point3d Position;
         public int Orientation;
-
     }
+
+    /// <summary>
+    /// 定义管廊初始化内容结构体
+    /// </summary>
+    public struct GLInitialData
+    {
+        public double X1, Y1, BG1, ZH1, SC_BG, SC_ZH;
+    }
+
 
     public static partial class StructTools
     {

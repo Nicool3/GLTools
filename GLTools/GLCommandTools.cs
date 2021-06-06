@@ -56,7 +56,7 @@ namespace GLTools
 
             // 判断是否已初始化, 如果已初始化判断是否覆盖
             bool overFlag = false;
-            if (db.initialized(doc))
+            if (db.initialized())
             {
                 overFlag = ed.GetBoolKeywordOnScreen("已检测到初始化结果, 是否覆盖? ");
                 if (overFlag)
@@ -142,48 +142,51 @@ namespace GLTools
             List<string> namelist = new List<string> { };
             List<string> mileagelist = new List<string> { };
 
-            foreach (SelectedObject obj in ss)
+            if (ss != null)
             {
-                if (obj != null)
+                foreach (SelectedObject obj in ss)
                 {
-                    try
+                    if (obj != null)
                     {
-                        TextData data = db.GetTextData(obj.ObjectId);
-                        // 如果文字中不包含构筑物内容则跳过
-                        if (data.Content.IsBuildingName() == false) continue;
-                        // 如果文字中包含桩号则记录
-                        if (data.Content.IsMileageNumber() == true)
+                        try
                         {
-                            namelist.Add(data.Content.Split(' ')[0]);
-                            mileagelist.Add(data.Content.FindMileageNumber());
-                            continue;
-                        }
-                        double mindis = 100;
-                        string mincontent = "";
-                        foreach (SelectedObject subobj in ss)
-                        {
-                            TextData subdata = db.GetTextData(subobj.ObjectId);
-                            if (subdata.Content.IsMileageNumber() == false) continue;
-                            double subdis = data.Position.GetDistance2dBetweenTwoPoint(subdata.Position);
-                            if (subdis < mindis && subdis > 0.01)
+                            TextData data = db.GetTextData(obj.ObjectId);
+                            // 如果文字中不包含构筑物内容则跳过
+                            if (data.Content.IsBuildingName() == false) continue;
+                            // 如果文字中包含桩号则记录
+                            if (data.Content.IsMileageNumber() == true)
                             {
-                                mindis = subdis;
-                                mincontent = subdata.Content;
+                                namelist.Add(data.Content.Split(' ')[0]);
+                                mileagelist.Add(data.Content.FindMileageNumber());
+                                continue;
                             }
+                            double mindis = 100;
+                            string mincontent = "";
+                            foreach (SelectedObject subobj in ss)
+                            {
+                                TextData subdata = db.GetTextData(subobj.ObjectId);
+                                if (subdata.Content.IsMileageNumber() == false) continue;
+                                double subdis = data.Position.GetDistance2dBetweenTwoPoint(subdata.Position);
+                                if (subdis < mindis && subdis > 0.01)
+                                {
+                                    mindis = subdis;
+                                    mincontent = subdata.Content;
+                                }
+                            }
+                            namelist.Add(data.Content);
+                            mileagelist.Add(mincontent);
                         }
-                        namelist.Add(data.Content);
-                        mileagelist.Add(mincontent);
-                    }
-                    catch
-                    {
-                        ed.WriteMessage("\n出现错误! ");
+                        catch
+                        {
+                            ed.WriteMessage("\n出现错误! ");
+                        }
                     }
                 }
             }
 
             Table table = new Table();
-            Point3d position = ed.GetPointOnScreen("请指定表格插入点: ");
-            table.Position = position; // 设置插入点
+            Point3d? position = ed.GetPointOnScreen("请指定表格插入点: ");
+            if(position!=null) table.Position = (Point3d)position; // 设置插入点
             table.SetSize(namelist.Count() + 1, 2); // 表格大小
             table.CellType(1, 1);
             table.Cells.TextStyleId = db.GetTextStyleId("SMEDI");
@@ -209,15 +212,15 @@ namespace GLTools
         [CommandMethod("QXBG")]
         public void create_bg_for_line()
         {
-            if (db.initialized(doc))
+            if (db.initialized())
             {
                 // 读取初始化数据
                 double Y1, BG1, SC_BG;
                 try
                 {
-                    Y1 = (double)db.ReadNumberFromNOD(doc, "Y1");
-                    BG1 = (double)db.ReadNumberFromNOD(doc, "BG1");
-                    SC_BG = (double)db.ReadNumberFromNOD(doc, "SC_BG");
+                    Y1 = (double)db.ReadNumberFromNOD("Y1");
+                    BG1 = (double)db.ReadNumberFromNOD("BG1");
+                    SC_BG = (double)db.ReadNumberFromNOD("SC_BG");
                 }
                 catch (Autodesk.AutoCAD.Runtime.Exception e)
                 {
@@ -261,8 +264,6 @@ namespace GLTools
                 ed.WriteMessage("\n本图还未进行初始化, 请先对标高和桩号进行初始化");
                 return;
             }
-
-            
         }
 
         /// <summary>
