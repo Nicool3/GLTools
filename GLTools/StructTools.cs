@@ -230,34 +230,71 @@ namespace GLTools
         /// <summary>
         /// 判断多段线是否为矩形
         /// </summary>
-        public static bool IsRectangle(this Database db, ObjectId Id)
+        public static bool IsRectangle(this Database db, ObjectId id)
         {
             bool flag = false;
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
-                try
+                // 获取图形对象
+                Entity ent = trans.GetObject(id, OpenMode.ForWrite) as Entity;
+                if (ent.GetType() == typeof(Polyline))
                 {
-                    PLineData plinedata = db.GetPLineData(Id);
+                    db.PLinePurger(id);
+                    PLineData plinedata = db.GetPLineData(id);
                     if (plinedata.VertexCount == 4)
                     {
                         if (plinedata.Vectors[0].DotProduct(plinedata.Vectors[1]).ToString()=="0" &&
                             plinedata.Vectors[1].DotProduct(plinedata.Vectors[2]).ToString() == "0" &&
                             plinedata.Vectors[2].DotProduct(plinedata.Vectors[3]).ToString() == "0") flag = true;
                     }
-                    else if (plinedata.VertexCount == 5 && plinedata.StartPoint == plinedata.EndPoint)
-                    {
-                        if (plinedata.Vectors[0].DotProduct(plinedata.Vectors[1]).ToString() == "0" &&
-                            plinedata.Vectors[1].DotProduct(plinedata.Vectors[2]).ToString() == "0" &&
-                            plinedata.Vectors[2].DotProduct(plinedata.Vectors[3]).ToString() == "0") flag = true;
-                    }
-                }
-                catch (Autodesk.AutoCAD.Runtime.Exception e)
-                {
-                    throw e;
                 }
                 trans.Commit();
             }
             return flag;
+        }
+
+        /// <summary>
+        /// 删除多段线中的多余点
+        /// </summary>
+        public static void PLinePurger(this Database db, ObjectId id)
+        {
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                // 打开块表
+                BlockTable bt = (BlockTable)trans.GetObject(db.BlockTableId, OpenMode.ForRead);
+                // 打开块表记录
+                BlockTableRecord btr = (BlockTableRecord)trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForRead);
+                // 获取图形对象
+                Entity ent = trans.GetObject(id, OpenMode.ForWrite) as Entity;
+                if (ent.GetType() == typeof(Polyline))
+                {
+                    Polyline pline = ent as Polyline;
+                    PLineData plinedata = db.GetPLineData(id);
+                    if (plinedata.VertexCount > 2)
+                    {
+                        // 为避免下标出现问题, 从下标最大处开始遍历
+                        for (int i = plinedata.VertexCount-2; i > 0; i--)
+                        {
+                            if(plinedata.Vectors[i-1]== plinedata.Vectors[i])
+                            {
+                                btr.UpgradeOpen();
+                                pline.RemoveVertexAt(i);
+                                btr.DowngradeOpen();
+                            }
+                        }
+                    }
+                    // 重新读取
+                    PLineData plinedatanew = db.GetPLineData(id);
+                    if (plinedatanew.StartPoint == plinedatanew.EndPoint)
+                    {
+                        btr.UpgradeOpen();
+                        pline.Closed = true;
+                        pline.RemoveVertexAt(plinedata.VertexCount - 1);
+                        btr.DowngradeOpen();
+                    }
+                }
+                trans.Commit();
+            }
         }
 
         /// <summary>
