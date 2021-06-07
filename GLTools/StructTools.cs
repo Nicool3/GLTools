@@ -51,6 +51,32 @@ namespace GLTools
     }
 
     /// <summary>
+    /// 定义多段线属性结构体
+    /// </summary>
+    public struct PLineData
+    {
+        public ObjectId PLineId;
+        public Point3d StartPoint;
+        public Point3d EndPoint;
+        public double Length;
+        public bool IsClosed;
+        public int VertexCount;
+        public Point3d[] VertexPoints;
+        public Vector3d[] Vectors;
+    }
+
+    /// <summary>
+    /// 定义矩形属性结构体
+    /// </summary>
+    public struct RectangleData
+    {
+        public ObjectId RectangleId;
+        public Point3d BasePoint;
+        public double Width;
+        public double Height;
+    }
+
+    /// <summary>
     /// 定义通用图素基础属性结构体
     /// </summary>
     public struct BasicEntityData
@@ -99,7 +125,7 @@ namespace GLTools
         }
 
         /// <summary>
-        /// 获取文字基础属性
+        /// 获取文字及多行文字通用属性
         /// </summary>
         public static TextData GetTextData(this Database db, ObjectId Id)
         {
@@ -133,7 +159,7 @@ namespace GLTools
         }
 
         /// <summary>
-        /// 获取直线及多段线属性
+        /// 获取直线及多段线通用属性
         /// </summary>
         public static LineData GetLineData(this Database db, ObjectId Id)
         {
@@ -159,6 +185,97 @@ namespace GLTools
                     data.EndPoint = pline.EndPoint;
                     data.Length = pline.Length;
                     data.Orientation = Math.Asin((data.EndPoint.Y - data.StartPoint.Y) / data.Length);
+                }
+                trans.Commit();
+            }
+            return data;
+        }
+
+        /// <summary>
+        /// 获取多段线属性
+        /// </summary>
+        public static PLineData GetPLineData(this Database db, ObjectId Id)
+        {
+            PLineData data = new PLineData();
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                Entity ent = trans.GetObject(Id, OpenMode.ForRead) as Entity;
+                data.PLineId = Id;
+
+                try
+                {
+                    Polyline pline = ent as Polyline;
+                    data.StartPoint = pline.StartPoint;
+                    data.EndPoint = pline.EndPoint;
+                    data.Length = pline.Length;
+                    data.VertexCount = pline.NumberOfVertices;
+                    data.IsClosed = pline.Closed;
+                    data.VertexPoints = new Point3d[data.VertexCount];
+                    data.Vectors = new Vector3d[data.VertexCount];
+                    for (int i = 0; i < data.VertexCount; i++)
+                    {
+                        data.VertexPoints[i] = pline.GetPoint3dAt(i);
+                        data.Vectors[i] = pline.GetFirstDerivative(pline.GetPoint3dAt(i)).GetNormal();
+                    }
+                }
+                catch(Autodesk.AutoCAD.Runtime.Exception e)
+                {
+                    throw e;
+                }
+                trans.Commit();
+            }
+            return data;
+        }
+
+        /// <summary>
+        /// 判断多段线是否为矩形
+        /// </summary>
+        public static bool IsRectangle(this Database db, ObjectId Id)
+        {
+            bool flag = false;
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                try
+                {
+                    PLineData plinedata = db.GetPLineData(Id);
+                    if (plinedata.VertexCount == 4)
+                    {
+                        if (plinedata.Vectors[0].DotProduct(plinedata.Vectors[1]).ToString()=="0" &&
+                            plinedata.Vectors[1].DotProduct(plinedata.Vectors[2]).ToString() == "0" &&
+                            plinedata.Vectors[2].DotProduct(plinedata.Vectors[3]).ToString() == "0") flag = true;
+                    }
+                    else if (plinedata.VertexCount == 5 && plinedata.StartPoint == plinedata.EndPoint)
+                    {
+                        if (plinedata.Vectors[0].DotProduct(plinedata.Vectors[1]).ToString() == "0" &&
+                            plinedata.Vectors[1].DotProduct(plinedata.Vectors[2]).ToString() == "0" &&
+                            plinedata.Vectors[2].DotProduct(plinedata.Vectors[3]).ToString() == "0") flag = true;
+                    }
+                }
+                catch (Autodesk.AutoCAD.Runtime.Exception e)
+                {
+                    throw e;
+                }
+                trans.Commit();
+            }
+            return flag;
+        }
+
+        /// <summary>
+        /// 获取矩形属性
+        /// </summary>
+        public static RectangleData GetRectangleData(this Database db, ObjectId Id)
+        {
+            RectangleData data = new RectangleData();
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                try
+                {
+                    PLineData plinedata = db.GetPLineData(Id);
+
+                }
+                catch (Autodesk.AutoCAD.Runtime.Exception e)
+                {
+                    throw e;
                 }
                 trans.Commit();
             }

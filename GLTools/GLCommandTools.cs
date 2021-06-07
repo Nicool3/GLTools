@@ -23,6 +23,25 @@ namespace GLTools
         Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
 
         /// <summary>
+        /// 测试多段线
+        /// </summary>
+        [CommandMethod("TESTREC")]
+        public void testpline()
+        {
+            ObjectId id = doc.GetEntityOnScreen("请选择");
+            //PLineData data = db.GetPLineData(id);
+            //for (int i = 0; i < data.VertexCount; i++)
+            //{
+            //    ed.WriteMessage(data.Vectors[i].ToString()+"\n");
+            //}
+            //ed.WriteMessage(data.Vectors[0].DotProduct(data.Vectors[1]).ToString() + "\n");
+            //ed.WriteMessage(data.Vectors[1].DotProduct(data.Vectors[2]).ToString() + "\n");
+            //ed.WriteMessage(data.Vectors[2].DotProduct(data.Vectors[3]).ToString() + "\n");
+            bool flag = db.IsRectangle(id);
+            ed.WriteMessage(flag.ToString()+"\n");
+        }
+
+        /// <summary>
         /// 测试
         /// </summary>
         [CommandMethod("CSVERSION")]
