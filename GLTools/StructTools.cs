@@ -74,6 +74,8 @@ namespace GLTools
         public Point3d BasePoint;
         public double Width;
         public double Height;
+        public int BasePointIndex;
+        public bool IsClockWise;
     }
 
     /// <summary>
@@ -239,7 +241,7 @@ namespace GLTools
                 Entity ent = trans.GetObject(id, OpenMode.ForWrite) as Entity;
                 if (ent.GetType() == typeof(Polyline))
                 {
-                    db.PLinePurger(id);
+                    db.PLinePurge(id);
                     PLineData plinedata = db.GetPLineData(id);
                     if (plinedata.VertexCount == 4)
                     {
@@ -254,9 +256,9 @@ namespace GLTools
         }
 
         /// <summary>
-        /// 删除多段线中的多余点
+        /// 删除多段线中的多余点并将应闭合的多段线闭合
         /// </summary>
-        public static void PLinePurger(this Database db, ObjectId id)
+        public static void PLinePurge(this Database db, ObjectId id)
         {
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
@@ -270,6 +272,7 @@ namespace GLTools
                 {
                     Polyline pline = ent as Polyline;
                     PLineData plinedata = db.GetPLineData(id);
+                    /// 删除多段线中的多余点
                     if (plinedata.VertexCount > 2)
                     {
                         // 为避免下标出现问题, 从下标最大处开始遍历
@@ -284,14 +287,14 @@ namespace GLTools
                         }
                     }
                     // 重新读取
-                    PLineData plinedatanew = db.GetPLineData(id);
-                    if (plinedatanew.StartPoint == plinedatanew.EndPoint)
-                    {
+                   plinedata = db.GetPLineData(id);
+                   if (plinedata.VertexPoints[0] == plinedata.VertexPoints[plinedata.VertexCount-1])
+                   {
                         btr.UpgradeOpen();
                         pline.Closed = true;
                         pline.RemoveVertexAt(plinedata.VertexCount - 1);
                         btr.DowngradeOpen();
-                    }
+                   }
                 }
                 trans.Commit();
             }
@@ -300,23 +303,80 @@ namespace GLTools
         /// <summary>
         /// 获取矩形属性
         /// </summary>
-        public static RectangleData GetRectangleData(this Database db, ObjectId Id)
+        public static RectangleData GetRectangleData(this Database db, ObjectId id)
         {
             RectangleData data = new RectangleData();
-            using (Transaction trans = db.TransactionManager.StartTransaction())
+            if (db.IsRectangle(id))
             {
-                try
+                PLineData plinedata = db.GetPLineData(id);
+                for (int i=0; i<4; i++)
                 {
-                    PLineData plinedata = db.GetPLineData(Id);
-
+                    Vector3d vec1 = plinedata.Vectors[i];
+                    Vector3d vec2 = plinedata.Vectors[(i+1)%4];
+                    if (vec1 == new Vector3d(1,0,0)&& vec2 == new Vector3d(0, 1, 0))
+                    {
+                        data.IsClockWise = false;
+                        data.BasePointIndex = i;
+                        data.BasePoint = plinedata.VertexPoints[i];
+                    }
+                    else if (vec1 == new Vector3d(0, 1, 0) && vec2 == new Vector3d(1, 0, 0))
+                    {
+                        data.IsClockWise = true;
+                        data.BasePointIndex = i;
+                        data.BasePoint = plinedata.VertexPoints[i];
+                    }
                 }
-                catch (Autodesk.AutoCAD.Runtime.Exception e)
-                {
-                    throw e;
-                }
-                trans.Commit();
+                Point3d p0 = plinedata.VertexPoints[0];
+                Point3d p2 = plinedata.VertexPoints[2];
+                data.Width = Math.Abs(p2.X - p0.X);
+                data.Height = Math.Abs(p2.Y - p0.Y);
             }
             return data;
+        }
+
+        /// <summary>
+        /// 修改矩形宽度
+        /// </summary>
+        public static void SetRectangleWidth(this Database db, ObjectId id, double newWidth)
+        {
+            if (db.IsRectangle(id))
+            {
+                RectangleData data = db.GetRectangleData(id);
+                int baseIndex = data.BasePointIndex;
+                Point3d basePoint = data.BasePoint;
+                bool clockWise = data.IsClockWise;
+                double width = data.Width;
+                double height = data.Height;
+                using (Transaction trans = db.TransactionManager.StartTransaction())
+                {
+                    // 打开块表
+                    BlockTable bt = (BlockTable)trans.GetObject(db.BlockTableId, OpenMode.ForRead);
+                    // 打开块表记录
+                    BlockTableRecord btr = (BlockTableRecord)trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForRead);
+                    // 获取图形对象
+                    Entity ent = trans.GetObject(id, OpenMode.ForWrite) as Entity;
+                    if (ent.GetType() == typeof(Polyline))
+                    {
+                        Polyline pline = ent as Polyline;
+                        btr.UpgradeOpen();
+                        pline.SetPointAt(baseIndex, new Point2d(basePoint.X- newWidth/2, basePoint.Y));
+                        if (clockWise)
+                        {
+                            pline.SetPointAt((baseIndex+1)%4, new Point2d(basePoint.X - newWidth / 2, basePoint.Y+height));
+                            pline.SetPointAt((baseIndex + 2) % 4, new Point2d(basePoint.X +width+ newWidth / 2, basePoint.Y + height));
+                            pline.SetPointAt((baseIndex + 3) % 4, new Point2d(basePoint.X + width + newWidth / 2, basePoint.Y));
+                        }
+                        else
+                        {
+                            pline.SetPointAt((baseIndex + 1) % 4, new Point2d(basePoint.X + width + newWidth / 2, basePoint.Y));
+                            pline.SetPointAt((baseIndex + 2) % 4, new Point2d(basePoint.X + width + newWidth / 2, basePoint.Y + height));
+                            pline.SetPointAt((baseIndex + 3) % 4, new Point2d(basePoint.X - newWidth / 2, basePoint.Y + height));
+                        }
+                        btr.DowngradeOpen();
+                    }
+                    trans.Commit();
+                }
+            }
         }
 
         /// <summary>

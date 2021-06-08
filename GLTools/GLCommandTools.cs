@@ -29,16 +29,30 @@ namespace GLTools
         public void testpline()
         {
             ObjectId id = doc.GetEntityOnScreen("请选择");
-            //PLineData data = db.GetPLineData(id);
-            //for (int i = 0; i < data.VertexCount; i++)
-            //{
-            //    ed.WriteMessage(data.Vectors[i].ToString()+"\n");
-            //}
+            /*
+            PLineData data = db.GetPLineData(id);
+            for (int i = 0; i < data.VertexCount; i++)
+            {
+                ed.WriteMessage(data.Vectors[i].ToString()+"\n");
+            }
+            ed.WriteMessage("start: "+data.StartPoint.ToString() + "\n");
+            ed.WriteMessage("end: " + data.EndPoint.ToString() + "\n");
+
             //ed.WriteMessage(data.Vectors[0].DotProduct(data.Vectors[1]).ToString() + "\n");
             //ed.WriteMessage(data.Vectors[1].DotProduct(data.Vectors[2]).ToString() + "\n");
             //ed.WriteMessage(data.Vectors[2].DotProduct(data.Vectors[3]).ToString() + "\n");
-            bool flag = db.IsRectangle(id);
-            ed.WriteMessage(flag.ToString()+"\n");
+            ed.WriteMessage(id.ToString() + "\n");
+            */
+            //RectangleData data = db.GetRectangleData(id);
+            db.SetRectangleWidth(id, 10);
+            /*
+            ed.WriteMessage(db.IsRectangle(id).ToString() + "\n");
+            ed.WriteMessage(data.Width.ToString()+"\n");
+            ed.WriteMessage(data.Height.ToString() + "\n");
+            ed.WriteMessage(data.IsClockWise.ToString() + "\n");
+            ed.WriteMessage(data.BasePointIndex.ToString() + "\n");
+            ed.WriteMessage(data.BasePoint.ToString() + "\n");
+            */
         }
 
         /// <summary>
