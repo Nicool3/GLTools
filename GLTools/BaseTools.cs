@@ -122,7 +122,7 @@ namespace GLTools
         /// </summary>
         public static bool IsMileageNumber(this string str)
         {
-            string pattern = @"[A-G][0-9]+[+][0-9]{3}[.]?[0-9]*";
+            string pattern = @"^[A-G][0-9]+[+][0-9]{3}[.]?[0-9]*$";
             Regex regex = new Regex(pattern);
             return regex.IsMatch(str);
         }
@@ -132,15 +132,17 @@ namespace GLTools
         /// </summary>
         public static string FindMileageNumber(this string str)
         {
+            string result = "";
             string pattern = @"[A-G][0-9]+[+][0-9]{3}[.]?[0-9]*";
             Regex regex = new Regex(pattern);
-            return regex.Match(str).Value;
+            if (regex.IsMatch(str)) result = regex.Match(str).Value;
+            return result;
         }
 
         /// <summary>
         /// 判断文字是否为节点名称
         /// </summary>
-        public static bool IsBuildingName(this string str)
+        public static bool IsStructureName(this string str)
         {
             string[] KeyNames = { "口", "缝", "端头井", "变坡", "防火墙"};
             int KeyNameCounts = KeyNames.Count();

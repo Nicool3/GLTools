@@ -97,6 +97,17 @@ namespace GLTools
         public double X1, Y1, BG1, ZH1, SC_BG, SC_ZH;
     }
 
+    /// <summary>
+    /// 定义节点桩号结构体
+    /// </summary>
+    public struct StructureData
+    {
+        public string Name;
+        public string Mileage;
+        public string MileageHead;
+        public double Distance;
+    }
+
 
     public static partial class StructTools
     {

@@ -15,12 +15,64 @@ using Autodesk.AutoCAD.EditorInput;
 
 namespace GLTools
 {
+    
     public class GLCommandTools
     {
         // 获取当前文档和数据库
         Document doc = Application.DocumentManager.MdiActiveDocument;
         Database db = Application.DocumentManager.MdiActiveDocument.Database;
         Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+
+        /// <summary>
+        /// 测试桩号
+        /// </summary>
+        [CommandMethod("TESTZH")]
+        public void testzh()
+        {
+            ObjectId id = doc.GetEntityOnScreen("请选择");
+            string content = db.GetTextData(id).Content;
+
+            ed.WriteMessage("IsMileageNumber? " + content.IsMileageNumber() + "\n");
+            ed.WriteMessage("FindMileageNumber? " + content.FindMileageNumber() + "\n");
+        }
+
+        /// <summary>
+        /// 测试多段线
+        /// </summary>
+        [CommandMethod("TESTTEMP")]
+        public void testtemp()
+        {
+            SelectionSet ss = doc.GetSelectionSet("请选择");
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                // 打开块表
+                BlockTable bt = (BlockTable)trans.GetObject(db.BlockTableId, OpenMode.ForRead);
+                // 打开块表记录
+                BlockTableRecord btr = (BlockTableRecord)trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
+                foreach (SelectedObject obj in ss)
+                {
+                    Entity ent = trans.GetObject(obj.ObjectId, OpenMode.ForWrite) as Entity;
+                    if (ent.GetType()==typeof(Line))
+                    {
+                        ed.WriteMessage("Find 1\n");
+                        
+                        Line line1 = ent as Line;
+                        if (line1.StartPoint.Y > line1.EndPoint.Y)
+                        {
+                            line1.StartPoint = new Point3d(line1.StartPoint.X, line1.StartPoint.Y - 3, line1.StartPoint.Z);
+                            line1.EndPoint = new Point3d(line1.EndPoint.X, line1.EndPoint.Y + 3, line1.EndPoint.Z);
+                        }
+                        else
+                        {
+                            line1.StartPoint = new Point3d(line1.StartPoint.X, line1.StartPoint.Y + 3, line1.StartPoint.Z);
+                            line1.EndPoint = new Point3d(line1.EndPoint.X, line1.EndPoint.Y - 3, line1.EndPoint.Z);
+                        }
+                        
+                    }
+                }
+                trans.Commit();
+            }
+        }
 
         /// <summary>
         /// 测试多段线
@@ -172,8 +224,7 @@ namespace GLTools
             SelectionFilter selFtrText = strlist.GetTypeFilter("OR");
             SelectionSet ss = doc.GetSelectionSet("请选择节点文字", selFtrText);
 
-            List<string> namelist = new List<string> { };
-            List<string> mileagelist = new List<string> { };
+            List<StructureData> sdatalist = new List<StructureData> { };
 
             if (ss != null)
             {
@@ -183,14 +234,19 @@ namespace GLTools
                     {
                         try
                         {
-                            TextData data = db.GetTextData(obj.ObjectId);
+                            TextData tdata = db.GetTextData(obj.ObjectId);
+                            StructureData sdata = new StructureData();
+                            Point3d p0 = tdata.Position;
+                            double r0 = tdata.Rotation;
                             // 如果文字中不包含构筑物内容则跳过
-                            if (data.Content.IsBuildingName() == false) continue;
+                            if (tdata.Content.IsStructureName() == false) continue;
                             // 如果文字中包含桩号则记录
-                            if (data.Content.IsMileageNumber() == true)
+                            if (tdata.Content.FindMileageNumber() != "")
                             {
-                                namelist.Add(data.Content.Split(' ')[0]);
-                                mileagelist.Add(data.Content.FindMileageNumber());
+                                sdata.Name = tdata.Content.Split(' ')[0];
+                                sdata.Mileage = tdata.Content.FindMileageNumber();
+                                sdata.MileageHead = sdata.Mileage.ToArray()[0].ToString();
+                                sdatalist.Add(sdata);
                                 continue;
                             }
                             double mindis = 100;
@@ -198,16 +254,21 @@ namespace GLTools
                             foreach (SelectedObject subobj in ss)
                             {
                                 TextData subdata = db.GetTextData(subobj.ObjectId);
-                                if (subdata.Content.IsMileageNumber() == false) continue;
-                                double subdis = data.Position.GetDistance2dBetweenTwoPoint(subdata.Position);
+                                Point3d psub = subdata.Position;
+                                double rsub = subdata.Rotation;
+                                if (subdata.Content.IsMileageNumber() == false || (rsub - r0)>0.05) continue;
+                                double subdis = p0.GetDistance2dBetweenTwoPoint(psub);
                                 if (subdis < mindis && subdis > 0.01)
                                 {
                                     mindis = subdis;
                                     mincontent = subdata.Content;
                                 }
                             }
-                            namelist.Add(data.Content);
-                            mileagelist.Add(mincontent);
+                            if (mindis > 10) mincontent = "";
+                            sdata.Name = tdata.Content;
+                            sdata.Mileage = mincontent;
+                            sdata.MileageHead = sdata.Mileage.ToArray()[0].ToString();
+                            sdatalist.Add(sdata);
                         }
                         catch
                         {
@@ -217,26 +278,37 @@ namespace GLTools
                 }
             }
 
-            Table table = new Table();
-            Point3d? position = ed.GetPointOnScreen("请指定表格插入点: ");
-            if(position!=null) table.Position = (Point3d)position; // 设置插入点
-            table.SetSize(namelist.Count() + 1, 2); // 表格大小
-            table.CellType(1, 1);
-            table.Cells.TextStyleId = db.GetTextStyleId("SMEDI");
-            table.Cells.TextHeight = 3.5;
-            table.Cells.Alignment = CellAlignment.MiddleCenter;
-            table.SetRowHeight(6); // 设置行高
-            table.SetColumnWidth(50); // 设置列宽
+            // 节点桩号按桩号头分类
+            HashSet<string> headset = new HashSet<string>(from sdata in sdatalist select sdata.MileageHead);
+            var headlist = headset.OrderBy(s => s).ToList();
 
-            table.Cells[0, 0].TextString = "节点汇总表";
+            ed.WriteMessage("共有" + headlist.Count()+"个桩号节点表格, 请依次点击生成\n");
 
-            for (int i = 1; i <= namelist.Count(); i++)
+            foreach (string head in headlist)
             {
-                table.Cells[i, 0].TextString = namelist[i - 1];
-                table.Cells[i, 1].TextString = mileagelist[i - 1];
-            }
+                // 选取指定桩号头的数据并按节点排序
+                var subdatalist_sorted = (from sdata in sdatalist where sdata.MileageHead == head orderby sdata.Name select sdata).ToList();
 
-            db.AddEntityToModeSpace(table);
+                Table table = new Table();
+                Point3d? position = ed.GetPointOnScreen("请指定"+head+"段表格插入点: ");
+                if (position != null) table.Position = (Point3d)position; // 设置插入点
+                table.SetSize(subdatalist_sorted.Count() + 1, 2); // 表格大小
+                table.CellType(1, 1);
+                table.Cells.TextStyleId = db.GetTextStyleId("SMEDI");
+                table.Cells.TextHeight = 3.5;
+                table.Cells.Alignment = CellAlignment.MiddleCenter;
+                table.SetRowHeight(6); // 设置行高
+                table.SetColumnWidth(50); // 设置列宽
+
+                table.Cells[0, 0].TextString = head + "段节点汇总表";
+     
+                for (int i = 1; i <= subdatalist_sorted.Count(); i++)
+                {
+                    table.Cells[i, 0].TextString = subdatalist_sorted[i - 1].Name;
+                    table.Cells[i, 1].TextString = subdatalist_sorted[i - 1].Mileage;
+                }
+                db.AddEntityToModeSpace(table);
+            }
         }
 
         /// <summary>
@@ -300,7 +372,7 @@ namespace GLTools
         }
 
         /// <summary>
-        /// 测试
+        /// 文字镜像
         /// </summary>
         [CommandMethod("WZJX")]
         public void mirror_text_by_line()
