@@ -144,7 +144,7 @@ namespace GLTools
         /// </summary>
         public static bool IsStructureName(this string str)
         {
-            string[] KeyNames = { "口", "缝", "端头井", "变坡", "防火墙"};
+            string[] KeyNames = { "人员出入口", "通风口", "投料口", "接出口","交叉口", "端头井", "缝", "变坡", "防火墙"};
             int KeyNameCounts = KeyNames.Count();
             bool[] Flags = new bool[KeyNameCounts];
             for(int i=0;i< KeyNameCounts; i++)

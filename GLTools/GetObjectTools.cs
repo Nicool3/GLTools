@@ -91,7 +91,6 @@ namespace GLTools
 
                 default:
                     return null;
-
             }
         }
 

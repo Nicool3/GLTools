@@ -215,7 +215,6 @@ namespace GLTools
         [CommandMethod("JDZH")]
         public void create_jd_zh()
         {
-
             // 平面图中需将坐标系置为WCS
             ed.CurrentUserCoordinateSystem = Matrix3d.Identity;
 
@@ -235,44 +234,56 @@ namespace GLTools
                         try
                         {
                             TextData tdata = db.GetTextData(obj.ObjectId);
-                            StructureData sdata = new StructureData();
                             Point3d p0 = tdata.Position;
                             double r0 = tdata.Rotation;
                             // 如果文字中不包含构筑物内容则跳过
                             if (tdata.Content.IsStructureName() == false) continue;
-                            // 如果文字中包含桩号则记录
-                            if (tdata.Content.FindMileageNumber() != "")
+                            // 如果文字中本身包含桩号则记录
+                            else if (tdata.Content.FindMileageNumber() != "")
                             {
+                                StructureData sdata = new StructureData();
                                 sdata.Name = tdata.Content.Split(' ')[0];
                                 sdata.Mileage = tdata.Content.FindMileageNumber();
                                 sdata.MileageHead = sdata.Mileage.ToArray()[0].ToString();
                                 sdatalist.Add(sdata);
                                 continue;
                             }
-                            double mindis = 100;
-                            string mincontent = "";
-                            foreach (SelectedObject subobj in ss)
+                            // 如果文字中包含构筑物内容但本身不包含桩号则按邻近内容查找
+                            else
                             {
-                                TextData subdata = db.GetTextData(subobj.ObjectId);
-                                Point3d psub = subdata.Position;
-                                double rsub = subdata.Rotation;
-                                if (subdata.Content.IsMileageNumber() == false || (rsub - r0)>0.05) continue;
-                                double subdis = p0.GetDistance2dBetweenTwoPoint(psub);
-                                if (subdis < mindis && subdis > 0.01)
+                                StructureData sdata = new StructureData();
+                                sdata.Name = tdata.Content;
+
+                                double mindis = 10;
+                                string mincontent = "";
+                                foreach (SelectedObject subobj in ss)
                                 {
-                                    mindis = subdis;
-                                    mincontent = subdata.Content;
+                                    TextData subdata = db.GetTextData(subobj.ObjectId);
+                                    Point3d psub = subdata.Position;
+                                    double rsub = subdata.Rotation;
+                                    if (subdata.Content.IsMileageNumber() == false || (rsub - r0) > 0.05)
+                                    {
+                                        continue;
+                                    }
+                                    else
+                                    {
+                                        double subdis = p0.GetDistance2dBetweenTwoPoint(psub);
+                                        if (subdis < mindis && subdis > 0.01)
+                                        {
+                                            mindis = subdis;
+                                            mincontent = subdata.Content;
+                                        }
+                                    }
                                 }
+                                
+                                sdata.Mileage = mincontent;
+                                sdata.MileageHead = mincontent!="" ? sdata.Mileage.ToArray()[0].ToString():"Unknown";
+                                sdatalist.Add(sdata);
                             }
-                            if (mindis > 10) mincontent = "";
-                            sdata.Name = tdata.Content;
-                            sdata.Mileage = mincontent;
-                            sdata.MileageHead = sdata.Mileage.ToArray()[0].ToString();
-                            sdatalist.Add(sdata);
                         }
-                        catch
+                        catch (Autodesk.AutoCAD.Runtime.Exception e)
                         {
-                            ed.WriteMessage("\n出现错误! ");
+                            throw e;
                         }
                     }
                 }
@@ -282,32 +293,42 @@ namespace GLTools
             HashSet<string> headset = new HashSet<string>(from sdata in sdatalist select sdata.MileageHead);
             var headlist = headset.OrderBy(s => s).ToList();
 
-            ed.WriteMessage("共有" + headlist.Count()+"个桩号节点表格, 请依次点击生成\n");
-
-            foreach (string head in headlist)
+            string method = ed.GetStringKeywordOnScreen("请选择排列方式: ", "1Name", "按节点名称(1)", "2Mile", "按桩号(2)");
+            if (method != null && method != "ESC")
             {
-                // 选取指定桩号头的数据并按节点排序
-                var subdatalist_sorted = (from sdata in sdatalist where sdata.MileageHead == head orderby sdata.Name select sdata).ToList();
+                ed.WriteMessage("共有" + headlist.Count() + "个桩号节点表格, 请依次点击生成\n");
 
-                Table table = new Table();
-                Point3d? position = ed.GetPointOnScreen("请指定"+head+"段表格插入点: ");
-                if (position != null) table.Position = (Point3d)position; // 设置插入点
-                table.SetSize(subdatalist_sorted.Count() + 1, 2); // 表格大小
-                table.CellType(1, 1);
-                table.Cells.TextStyleId = db.GetTextStyleId("SMEDI");
-                table.Cells.TextHeight = 3.5;
-                table.Cells.Alignment = CellAlignment.MiddleCenter;
-                table.SetRowHeight(6); // 设置行高
-                table.SetColumnWidth(50); // 设置列宽
-
-                table.Cells[0, 0].TextString = head + "段节点汇总表";
-     
-                for (int i = 1; i <= subdatalist_sorted.Count(); i++)
+                foreach (string head in headlist)
                 {
-                    table.Cells[i, 0].TextString = subdatalist_sorted[i - 1].Name;
-                    table.Cells[i, 1].TextString = subdatalist_sorted[i - 1].Mileage;
+                    // 选取指定桩号头的数据并按节点排序
+                    var subdatalist_sorted = (from sdata in sdatalist where sdata.MileageHead == head orderby sdata.Name select sdata).ToList();
+
+                    if (method == "2Mile")
+                    {
+                        // 选取指定桩号头的数据并按桩号排序
+                        subdatalist_sorted = (from sdata in sdatalist where sdata.MileageHead == head orderby sdata.Mileage select sdata).ToList();
+                    }
+
+                    Table table = new Table();
+                    Point3d? position = ed.GetPointOnScreen("请指定" + head + "段表格插入点: ");
+                    if (position != null) table.Position = (Point3d)position; // 设置插入点
+                    table.SetSize(subdatalist_sorted.Count() + 1, 2); // 表格大小
+                    table.CellType(1, 1);
+                    table.Cells.TextStyleId = db.GetTextStyleId("SMEDI");
+                    table.Cells.TextHeight = 3.5;
+                    table.Cells.Alignment = CellAlignment.MiddleCenter;
+                    table.SetRowHeight(6); // 设置行高
+                    table.SetColumnWidth(50); // 设置列宽
+
+                    table.Cells[0, 0].TextString = head + "段节点汇总表\n";
+
+                    for (int i = 1; i <= subdatalist_sorted.Count(); i++)
+                    {
+                        table.Cells[i, 0].TextString = subdatalist_sorted[i - 1].Name;
+                        table.Cells[i, 1].TextString = subdatalist_sorted[i - 1].Mileage;
+                    }
+                    db.AddEntityToModeSpace(table);
                 }
-                db.AddEntityToModeSpace(table);
             }
         }
 

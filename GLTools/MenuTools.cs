@@ -60,11 +60,13 @@ namespace GLTools
                 myMenu.AddMenuItem(myMenu.Count, "生成节点桩号", "JDZH ");
                 myMenu.AddMenuItem(myMenu.Count, "拾取线生成标高", "QXBG ");
 
+                myMenu.AddSeparator(myMenu.Count); //加入分割符号
+
                 //开始加子菜单栏
                 AcadPopupMenu subMenu = myMenu.AddSubMenu(myMenu.Count, "图号重排");  //子菜单对象
                 subMenu.AddMenuItem(myMenu.Count, "按行重排", "THCP R ");
                 subMenu.AddMenuItem(myMenu.Count, "按列重排", "THCP C ");
-                myMenu.AddSeparator(myMenu.Count); //加入分割符号
+                
                 //结束加子菜单栏
 
             }
