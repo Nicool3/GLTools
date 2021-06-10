@@ -393,6 +393,105 @@ namespace GLTools
         }
 
         /// <summary>
+        /// 管廊纵断面工具-选点生成桩号和标高
+        /// </summary>
+        [CommandMethod("QDZHBG")]
+        public void bg_and_zh()
+        {
+            if (db.initialized())
+            {
+                // 读取初始化数据
+                double X1, Y1, BG1, ZH1, SC_BG, SC_ZH;
+                try
+                {
+                    Y1 = (double)db.ReadNumberFromNOD("Y1");
+                    X1 = (double)db.ReadNumberFromNOD("X1");
+                    BG1 = (double)db.ReadNumberFromNOD("BG1");
+                    ZH1 = (double)db.ReadNumberFromNOD("ZH1");
+                    SC_BG = (double)db.ReadNumberFromNOD("SC_BG");
+                    SC_ZH = (double)db.ReadNumberFromNOD("SC_ZH");
+                }
+                catch (Autodesk.AutoCAD.Runtime.Exception e)
+                {
+                    throw e;
+                }
+
+                bool outBG = false, outZH = false;
+                double ZHpy = 0, BGpy = 0;
+                SelectionSet ssBG = doc.GetSelectionSet("请选择插入标高栏两侧边线, 如无需插入标高则(ESC): ");
+                SelectionSet ssZH = doc.GetSelectionSet("请选择插入桩号栏两侧边线, 如无需插入桩号则(ESC): ");
+                if (ssBG != null)
+                {
+                    if (ssBG.Count == 2)
+                    {
+                        outBG = true;
+                        LineData BGl1 = db.GetLineData(ssBG.GetObjectIds()[0]);
+                        LineData BGl2 = db.GetLineData(ssBG.GetObjectIds()[1]);
+                        BGpy = (BGl1.StartPoint.Y + BGl2.StartPoint.Y) / 2;
+                    }
+                    else
+                    {
+                        ed.WriteMessage("标高栏两侧边线选择有误, 请重新选择! ");
+                        return;
+                    }
+                }
+                string ZHhead = "A";
+                if (ssZH != null)
+                {
+                    if (ssZH.Count == 2)
+                    {
+                        outZH = true;
+                        LineData ZHl1 = db.GetLineData(ssZH.GetObjectIds()[0]);
+                        LineData ZHl2 = db.GetLineData(ssZH.GetObjectIds()[1]);
+                        ZHpy = (ZHl1.StartPoint.Y + ZHl2.StartPoint.Y) / 2;
+                        ZHhead = ed.GetStringOnScreen("请输入桩号段字母(A/B/C...): ");
+                    }
+                    else ed.WriteMessage("桩号栏两侧边线选择有误, 请重新选择! ");
+                }
+
+                bool flag = true;
+                while (flag)
+                {
+                    Point3d? p0 = ed.GetPointOnScreen("请选择需要标注的点");
+                    if (p0 != null)
+                    {
+                        Point3d p = (Point3d)p0;
+                        double BG = Math.Round(BG1 + (p.Y - Y1) * SC_BG, 3);
+                        double ZH = Math.Round(ZH1 + (p.X - X1) * SC_ZH, 3);
+
+                        if (outBG)
+                        {
+                            string BGstr = BG.ToString("#.000");
+                            db.AddTextToModeSpace(BGstr, new Point3d(p.X, BGpy, p.Z),3.5,Math.PI*0.5);
+                        }
+                        if (outZH)
+                        {
+                            double ZHtail = ZH - (Math.Floor(ZH/1000))*1000;
+                            int ZHmile = (int)Math.Floor(ZH / 1000);
+                            string ZHstr = ZHhead+"0+000";
+                            if(Math.Floor(ZHtail)- ZHtail < 0.001)
+                            {
+                                ZHstr = ZHhead + ZHmile.ToString() + "+"+ ZHtail.ToString("000");
+                                db.AddTextToModeSpace(ZHstr, new Point3d(p.X, ZHpy, p.Z), 3.5, Math.PI * 0.5);
+                            }
+                            else
+                            {
+                                ZHstr = ZHhead + ZHmile.ToString() + "+" + ZHtail.ToString("000.000");
+                                db.AddTextToModeSpace(ZHstr, new Point3d(p.X, ZHpy, p.Z), 3.5, Math.PI * 0.5);
+                            }
+                        }
+                    }
+                    else flag = false;
+                }
+            }
+            else
+            {
+                ed.WriteMessage("\n本图还未进行初始化, 请先对标高和桩号进行初始化");
+                return;
+            }
+        }
+
+        /// <summary>
         /// 文字镜像
         /// </summary>
         [CommandMethod("WZJX")]
