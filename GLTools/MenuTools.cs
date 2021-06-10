@@ -59,6 +59,7 @@ namespace GLTools
                 myMenu.AddMenuItem(myMenu.Count, "两行数值相减", "SZXJ ");
                 myMenu.AddMenuItem(myMenu.Count, "生成节点桩号", "JDZH ");
                 myMenu.AddMenuItem(myMenu.Count, "拾取线生成标高", "QXBG ");
+                myMenu.AddMenuItem(myMenu.Count, "选点生成桩号及标高", "QDZHBG ");
 
                 myMenu.AddSeparator(myMenu.Count); //加入分割符号
 
