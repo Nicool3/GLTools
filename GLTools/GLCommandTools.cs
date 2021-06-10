@@ -29,11 +29,31 @@ namespace GLTools
         [CommandMethod("TESTZH")]
         public void testzh()
         {
-            ObjectId id = doc.GetEntityOnScreen("请选择");
-            string content = db.GetTextData(id).Content;
+            //string ZHhead = "A";
+            double ZH = (double)ed.GetNumberOnScreen("请输入: ");
+            ed.WriteMessage(ZH.ToString("000") + "\n");
+            ed.WriteMessage(ZH.ToString("000.000") + "\n");
+            ed.WriteMessage((Math.Floor(ZH / 1000)).ToString() + "\n");
+            int ZHmile = (int)Math.Floor(ZH / 1000);
+            ed.WriteMessage(ZHmile.ToString() + "\n");
+            double ZHtail = ZH - (Math.Floor(ZH / 1000)) * 1000;
+            ed.WriteMessage(ZHtail.ToString() + "\n");
+            ed.WriteMessage((Math.Floor(ZHtail) - ZHtail).ToString() + "\n");
 
-            ed.WriteMessage("IsMileageNumber? " + content.IsMileageNumber() + "\n");
-            ed.WriteMessage("FindMileageNumber? " + content.FindMileageNumber() + "\n");
+            /*
+            double ZHtail = ZH - (Math.Floor(ZH / 1000)) * 1000;
+            string ZHstr = ZHhead + "0+000";
+            if (Math.Floor(ZHtail) - ZHtail < 0.001)
+            {
+                ZHstr = ZHhead + ZHmile.ToString() + "+" + ZHtail.ToString("000");
+                ed.WriteMessage(ZHstr+"\n");
+            }
+            else
+            {
+                ZHstr = ZHhead + ZHmile.ToString() + "+" + ZHtail.ToString("000.000");
+                ed.WriteMessage(ZHstr + "\n");
+            }
+            */
         }
 
         /// <summary>
@@ -469,7 +489,7 @@ namespace GLTools
                             double ZHtail = ZH - (Math.Floor(ZH/1000))*1000;
                             int ZHmile = (int)Math.Floor(ZH / 1000);
                             string ZHstr = ZHhead+"0+000";
-                            if(Math.Floor(ZHtail)- ZHtail < 0.001)
+                            if(Math.Abs(Math.Floor(ZHtail)- ZHtail) < 0.001)
                             {
                                 ZHstr = ZHhead + ZHmile.ToString() + "+"+ ZHtail.ToString("000");
                                 db.AddTextToModeSpace(ZHstr, new Point3d(p.X, ZHpy, p.Z), 3.5, Math.PI * 0.5);
