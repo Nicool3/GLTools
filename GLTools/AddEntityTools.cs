@@ -86,6 +86,36 @@ namespace GLTools
         }
 
         /// <summary>
+        /// 绘制折线多段线
+        /// </summary>
+        /// <param name="db">图形数据库</param>
+        /// <param name="isClosed">是否闭合</param>
+        /// <param name="contantWidth">线宽</param>
+        /// <param name="vertices">多线段的顶点 可变参数</param>
+        /// <returns></returns>
+        public static ObjectId AddPolyLineToModeSpace(this Database db, bool isClosed, double contantWidth, params Point2d[] vertices)
+        {
+            if (vertices.Length < 2)  // 顶点个数小于2 无法绘制
+            {
+                return ObjectId.Null;
+            }
+            // 声明一个多段线对象
+            Polyline pline = new Polyline();
+            // 添加多段线顶点
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                pline.AddVertexAt(i, vertices[i], 0, 0, 0);
+            }
+            if (isClosed)
+            {
+                pline.Closed = true;
+            }
+            // 设置多段线的线宽
+            pline.ConstantWidth = contantWidth;
+            return db.AddEntityToModeSpace(pline);
+        }
+
+        /// <summary>
         /// 添加文字
         /// </summary>
         /// <param name="db"></param>

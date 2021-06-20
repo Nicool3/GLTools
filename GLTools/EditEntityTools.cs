@@ -40,6 +40,33 @@ namespace GLTools
             return c1Id;
         }
 
+        /// <summary>
+        /// 改变图形图层
+        /// </summary>
+        /// <param name="c1Id">图形的ObjectId</param>
+        /// <param name="layerName">图层名称</param>
+        /// <returns>图形的ObjectId</returns> 图形已经添加图形数据库
+
+        public static ObjectId ChangeEntityLayer(this ObjectId c1Id, string layerName)
+        {
+            // 图形数据库
+            Database db = HostApplicationServices.WorkingDatabase;
+            // 开启事务处理
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                // 打开块表
+                BlockTable bt = (BlockTable)trans.GetObject(db.BlockTableId, OpenMode.ForRead);
+                // 打开块表记录
+                BlockTableRecord btr = (BlockTableRecord)trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
+                // 获取图形对象
+                Entity ent1 = (Entity)c1Id.GetObject(OpenMode.ForWrite);
+                // 设置颜色
+                ent1.Layer = layerName;
+                trans.Commit();
+            }
+            return c1Id;
+        }
+
 
         /// <summary>
         /// 改变图形颜色  图形没有添加到图形数据库

@@ -15,7 +15,7 @@ using Autodesk.AutoCAD.EditorInput;
 
 namespace GLTools
 {
-    
+
     public class GLCommandTools
     {
         // 获取当前文档和数据库
@@ -24,128 +24,13 @@ namespace GLTools
         Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
 
         /// <summary>
-        /// 测试桩号
-        /// </summary>
-        [CommandMethod("TESTZH")]
-        public void testzh()
-        {
-            //string ZHhead = "A";
-            double ZH = (double)ed.GetNumberOnScreen("请输入: ");
-            ed.WriteMessage(ZH.ToString("000") + "\n");
-            ed.WriteMessage(ZH.ToString("000.000") + "\n");
-            ed.WriteMessage((Math.Floor(ZH / 1000)).ToString() + "\n");
-            int ZHmile = (int)Math.Floor(ZH / 1000);
-            ed.WriteMessage(ZHmile.ToString() + "\n");
-            double ZHtail = ZH - (Math.Floor(ZH / 1000)) * 1000;
-            ed.WriteMessage(ZHtail.ToString() + "\n");
-            ed.WriteMessage((Math.Floor(ZHtail) - ZHtail).ToString() + "\n");
-
-            /*
-            double ZHtail = ZH - (Math.Floor(ZH / 1000)) * 1000;
-            string ZHstr = ZHhead + "0+000";
-            if (Math.Floor(ZHtail) - ZHtail < 0.001)
-            {
-                ZHstr = ZHhead + ZHmile.ToString() + "+" + ZHtail.ToString("000");
-                ed.WriteMessage(ZHstr+"\n");
-            }
-            else
-            {
-                ZHstr = ZHhead + ZHmile.ToString() + "+" + ZHtail.ToString("000.000");
-                ed.WriteMessage(ZHstr + "\n");
-            }
-            */
-        }
-
-        /// <summary>
-        /// 测试多段线
-        /// </summary>
-        [CommandMethod("TESTTEMP")]
-        public void testtemp()
-        {
-            SelectionSet ss = doc.GetSelectionSet("请选择");
-            using (Transaction trans = db.TransactionManager.StartTransaction())
-            {
-                // 打开块表
-                BlockTable bt = (BlockTable)trans.GetObject(db.BlockTableId, OpenMode.ForRead);
-                // 打开块表记录
-                BlockTableRecord btr = (BlockTableRecord)trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
-                foreach (SelectedObject obj in ss)
-                {
-                    Entity ent = trans.GetObject(obj.ObjectId, OpenMode.ForWrite) as Entity;
-                    if (ent.GetType()==typeof(Line))
-                    {
-                        ed.WriteMessage("Find 1\n");
-                        
-                        Line line1 = ent as Line;
-                        if (line1.StartPoint.Y > line1.EndPoint.Y)
-                        {
-                            line1.StartPoint = new Point3d(line1.StartPoint.X, line1.StartPoint.Y - 3, line1.StartPoint.Z);
-                            line1.EndPoint = new Point3d(line1.EndPoint.X, line1.EndPoint.Y + 3, line1.EndPoint.Z);
-                        }
-                        else
-                        {
-                            line1.StartPoint = new Point3d(line1.StartPoint.X, line1.StartPoint.Y + 3, line1.StartPoint.Z);
-                            line1.EndPoint = new Point3d(line1.EndPoint.X, line1.EndPoint.Y - 3, line1.EndPoint.Z);
-                        }
-                        
-                    }
-                }
-                trans.Commit();
-            }
-        }
-
-        /// <summary>
-        /// 测试多段线
-        /// </summary>
-        [CommandMethod("TESTREC")]
-        public void testpline()
-        {
-            ObjectId id = doc.GetEntityOnScreen("请选择");
-            /*
-            PLineData data = db.GetPLineData(id);
-            for (int i = 0; i < data.VertexCount; i++)
-            {
-                ed.WriteMessage(data.Vectors[i].ToString()+"\n");
-            }
-            ed.WriteMessage("start: "+data.StartPoint.ToString() + "\n");
-            ed.WriteMessage("end: " + data.EndPoint.ToString() + "\n");
-
-            //ed.WriteMessage(data.Vectors[0].DotProduct(data.Vectors[1]).ToString() + "\n");
-            //ed.WriteMessage(data.Vectors[1].DotProduct(data.Vectors[2]).ToString() + "\n");
-            //ed.WriteMessage(data.Vectors[2].DotProduct(data.Vectors[3]).ToString() + "\n");
-            ed.WriteMessage(id.ToString() + "\n");
-            */
-            //RectangleData data = db.GetRectangleData(id);
-            db.SetRectangleWidth(id, 10);
-            /*
-            ed.WriteMessage(db.IsRectangle(id).ToString() + "\n");
-            ed.WriteMessage(data.Width.ToString()+"\n");
-            ed.WriteMessage(data.Height.ToString() + "\n");
-            ed.WriteMessage(data.IsClockWise.ToString() + "\n");
-            ed.WriteMessage(data.BasePointIndex.ToString() + "\n");
-            ed.WriteMessage(data.BasePoint.ToString() + "\n");
-            */
-        }
-
-        /// <summary>
-        /// 测试
-        /// </summary>
-        [CommandMethod("CSVERSION")]
-        public void testtest()
-        {
-            string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-            ed.WriteMessage(version);
-            ed.WriteMessage("CSVERSION_1");
-        }
-
-        /// <summary>
         /// 测试
         /// </summary>
         [CommandMethod("CSCS")]
         public void test()
         {
-            ed.WriteMessage(Math.Abs(Math.Sin(Math.PI*1.5)).ToString());
-            ed.WriteMessage(Math.Sin(Math.PI * 1.5).ToString());
+            ObjectId plineId = db.AddPolyLineToModeSpace(true, 0, new Point2d(0, 100), new Point2d(100, 100),
+                                new Point2d(100, 0), new Point2d(0, 0));
         }
 
         /// <summary>
@@ -217,7 +102,7 @@ namespace GLTools
                         {
                             Point3d insertp = new Point3d(t1.Position.X, insertpy, t1.Position.Z);
                             double result = Convert.ToDouble(t1.Content) - Convert.ToDouble(t2.Content);
-                            db.AddTextToModeSpace(result.ToString("#.000"), insertp, 3.5, Math.PI*0.5);
+                            db.AddTextToModeSpace(result.ToString("#.000"), insertp, 3.5, Math.PI * 0.5);
                         }
                         catch
                         {
@@ -295,9 +180,9 @@ namespace GLTools
                                         }
                                     }
                                 }
-                                
+
                                 sdata.Mileage = mincontent;
-                                sdata.MileageHead = mincontent!="" ? sdata.Mileage.ToArray()[0].ToString():"Unknown";
+                                sdata.MileageHead = mincontent != "" ? sdata.Mileage.ToArray()[0].ToString() : "Unknown";
                                 sdatalist.Add(sdata);
                             }
                         }
@@ -482,16 +367,16 @@ namespace GLTools
                         if (outBG)
                         {
                             string BGstr = BG.ToString("#.000");
-                            db.AddTextToModeSpace(BGstr, new Point3d(p.X, BGpy, p.Z),3.5,Math.PI*0.5);
+                            db.AddTextToModeSpace(BGstr, new Point3d(p.X, BGpy, p.Z), 3.5, Math.PI * 0.5);
                         }
                         if (outZH)
                         {
-                            double ZHtail = ZH - (Math.Floor(ZH/1000))*1000;
+                            double ZHtail = ZH - (Math.Floor(ZH / 1000)) * 1000;
                             int ZHmile = (int)Math.Floor(ZH / 1000);
-                            string ZHstr = ZHhead+"0+000";
-                            if(Math.Abs(Math.Floor(ZHtail)- ZHtail) < 0.001)
+                            string ZHstr = ZHhead + "0+000";
+                            if (Math.Abs(Math.Floor(ZHtail) - ZHtail) < 0.001)
                             {
-                                ZHstr = ZHhead + ZHmile.ToString() + "+"+ ZHtail.ToString("000");
+                                ZHstr = ZHhead + ZHmile.ToString() + "+" + ZHtail.ToString("000");
                                 db.AddTextToModeSpace(ZHstr, new Point3d(p.X, ZHpy, p.Z), 3.5, Math.PI * 0.5);
                             }
                             else
@@ -586,6 +471,165 @@ namespace GLTools
                     ed.WriteMessage("\n所选元素方向不一致, 请重新选择! ");
                 }
 
+            }
+        }
+
+        /// <summary>
+        /// 管廊配筋图绘制工具-选择壁板边界绘制剖面配筋图
+        /// </summary>
+        [CommandMethod("PJT")]
+        public void PJT()
+        {
+            SelectionSet ss = null;
+            double? offsetDistance = null;
+
+            // 多段线过滤器
+            string str = "LWPOLYLINE";
+            SelectionFilter filterPline = str.GetSingleTypeFilter();
+
+            ss = doc.GetSelectionSet("请选择需要绘制配筋图的多段线", filterPline);
+            offsetDistance = ed.GetNumberOnScreen("请输入保护层厚度: ");  // 偏移距离
+            if (ss != null && offsetDistance!=null)
+            {
+
+                using (Transaction trans = db.TransactionManager.StartTransaction())
+                {
+                    List<ObjectId> listPlineId = new List<ObjectId> { };
+                    List<double> listPlineArea = new List<double> { };
+                    foreach (SelectedObject obj in ss)
+                    {
+                        if (obj != null)
+                        {
+                            Entity ent = trans.GetObject(obj.ObjectId, OpenMode.ForRead) as Entity;
+                            if (ent.GetType() == typeof(Polyline))
+                            {
+                                Polyline pline = ent as Polyline;
+                                double plineArea = pline.Area;
+                                listPlineId.Add(obj.ObjectId);
+                                listPlineArea.Add(plineArea);
+                            }                            
+                        }
+                    }
+                    int indexMax = listPlineArea.IndexOf(listPlineArea.Max());
+                    double plineAreaMax = listPlineArea[indexMax];
+                    ObjectId plineAreaMaxId = listPlineId[indexMax];
+
+                    List<ObjectId> listOffsetPlineId = new List<ObjectId> { };
+                    ObjectId maxId = ObjectId.Null;
+                    // 设置当前图层
+                    db.SetLayerCurrent("结-钢筋", 1);
+
+                    foreach (ObjectId objId in listPlineId)
+                    {
+                        Polyline pline = trans.GetObject(objId, OpenMode.ForRead) as Polyline;
+                        if (objId == plineAreaMaxId)
+                        {
+                            Curve plineOffset = pline.GetOffsetCurves((double)offsetDistance)[0] as Curve;
+                            ObjectId newId = db.AddEntityToModeSpace(plineOffset);
+                            maxId = newId;
+                            newId.ChangeEntityLayer("结-钢筋");
+                        }
+                        else
+                        {
+                            Curve plineOffset = pline.GetOffsetCurves(-(double)offsetDistance)[0] as Curve;
+                            ObjectId newId = db.AddEntityToModeSpace(plineOffset);
+                            listOffsetPlineId.Add(newId);
+                            newId.ChangeEntityLayer("结-钢筋");
+                        }
+                    }
+
+                    Polyline maxPline = trans.GetObject(maxId, OpenMode.ForRead) as Polyline;
+                    PLineData maxdata = db.GetPLineData(maxId);
+
+                    // 连接最外圈多段线本身内部可连接处
+                    for (int i = 0; i < maxdata.VertexCount; i++)
+                    {
+                        Point3d p = maxdata.VertexPoints[i];
+                        Vector3d v = maxdata.Vectors[i];
+                        Line line = new Line(p, p + v);
+                        Point3dCollection points = new Point3dCollection();
+                        maxPline.IntersectWith(line, Intersect.ExtendBoth, new Plane(), points, IntPtr.Zero, IntPtr.Zero);
+                        if (points.Count > 2)
+                        {
+                            foreach (Point3d point in points)
+                            {
+                                if (maxdata.VertexPoints.Contains(point) == false)
+                                { 
+                                    ObjectId newId = db.AddLineToModeSpace(p, point);
+                                }
+                            }
+                            
+                        }
+                    }
+
+                    // 连接内圈多段线和最外圈多段线可连接处
+                    foreach (ObjectId objId in listOffsetPlineId)
+                    {
+                        PLineData data = db.GetPLineData(objId);
+                        for(int i=0; i< data.VertexCount; i++)
+                        {
+                            Point3d p = data.VertexPoints[i];
+                            Vector3d v = data.Vectors[i];
+                            Line line = new Line(p, p+v);
+                            Point3dCollection points = new Point3dCollection();
+                            maxPline.IntersectWith(line, Intersect.ExtendBoth, new Plane(), points, IntPtr.Zero, IntPtr.Zero);
+                            ObjectId newId = db.AddLineToModeSpace(points[0], points[1]);
+                        }
+                    }
+                    trans.Commit();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 管廊配筋图绘制工具-绘制转角点筋
+        /// </summary>
+        [CommandMethod("DJDJ")]
+        public void DJDJ()
+        {
+            SelectionSet ss = null;
+            double? offsetDistance = null;
+
+            // 多段线过滤器
+            string str = "LINE";
+            SelectionFilter filterLine = str.GetSingleTypeFilter();
+
+            offsetDistance = ed.GetNumberOnScreen("请输入偏移距离: ");  // 偏移距离
+            ss = doc.GetSelectionSet("请选择4条直线", filterLine);
+
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                while (ss != null && ss.Count == 4)
+                {
+                    Line Line0 = trans.GetObject(ss[0].ObjectId, OpenMode.ForRead) as Line;
+                    
+                    int[] index = new int[] {1, 2, 3 };
+                    for(int i=1; i<4; i++)
+                    {
+                        Line Linei = trans.GetObject(ss[i].ObjectId, OpenMode.ForRead) as Line;
+                        if (Line0.Angle == Linei.Angle || Line0.Angle + Linei.Angle == Math.PI*2)
+                        {
+                            int[] indexexp = index.Except(new int[] { i }).ToArray();
+
+                            Point3d p0 = db.GetLineIntersection(ss[0].ObjectId, ss[indexexp[0]].ObjectId);
+                            Point3d p1 = db.GetLineIntersection(ss[indexexp[0]].ObjectId, ss[i].ObjectId);
+                            Point3d p2 = db.GetLineIntersection(ss[i].ObjectId, ss[indexexp[1]].ObjectId);
+                            Point3d p3 = db.GetLineIntersection(ss[indexexp[1]].ObjectId, ss[0].ObjectId);
+
+                            ObjectId plineId = db.AddPolyLineToModeSpace(true, 0, new Point2d(p0.X, p0.Y), new Point2d(p1.X, p1.Y), 
+                                new Point2d(p2.X, p2.Y), new Point2d(p3.X, p3.Y));
+
+                            Polyline pline = trans.GetObject(plineId, OpenMode.ForRead) as Polyline;
+                            Curve plineOffset = pline.GetOffsetCurves((double)offsetDistance)[0] as Curve;
+                            ObjectId newId = db.AddEntityToModeSpace(plineOffset);
+                            newId.ChangeEntityLayer("结-钢筋");
+                            break;
+                        }
+                    }
+
+                    ss = doc.GetSelectionSet("请选择4条直线", filterLine);
+                }
+                trans.Commit();
             }
         }
     }
