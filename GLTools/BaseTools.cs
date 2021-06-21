@@ -118,6 +118,53 @@ namespace GLTools
         }
 
         /// <summary>
+        /// 求多条直线及多段线的全部交点，包括多段线的中间顶点
+        /// </summary>
+        public static List<Point3d> GetAllLineIntersection(this Database db, SelectionSet ss)
+        {
+            List<Point3d> result = new List<Point3d> { };
+            // 启动事务
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                if(ss != null)
+                {
+                    foreach (SelectedObject obj in ss)
+                    {
+                        Entity ent = trans.GetObject(obj.ObjectId, OpenMode.ForRead) as Entity;
+                        if (ent.GetType() == typeof(Line) || ent.GetType() == typeof(Polyline))
+                        {
+                            Curve Line1 = (Curve)trans.GetObject(obj.ObjectId, OpenMode.ForRead);
+                            foreach (SelectedObject subobj in ss)
+                            {
+                                Entity subent = trans.GetObject(obj.ObjectId, OpenMode.ForRead) as Entity;
+                                if ((subobj.ObjectId!=obj.ObjectId) && (subent.GetType() == typeof(Line) || subent.GetType() == typeof(Polyline)))
+                                {
+                                    Curve Line2 = (Curve)trans.GetObject(subobj.ObjectId, OpenMode.ForRead);
+                                    Point3dCollection points = new Point3dCollection();
+                                    Line1.IntersectWith(Line2, Intersect.OnBothOperands, new Plane(), points, IntPtr.Zero, IntPtr.Zero);
+                                    foreach (Point3d p in points)
+                                    {
+                                        if (result.Contains(p) == false) result.Add(p);
+                                    }
+                                }
+                            }
+                        }
+                        if (ent.GetType() == typeof(Polyline))
+                        {
+                            Polyline pline = ent as Polyline;
+                            for (int i = 0; i < pline.NumberOfVertices; i++)
+                            {
+                                Point3d p = pline.GetPoint3dAt(i);
+                                if (p!=pline.StartPoint && p!=pline.EndPoint && result.Contains(p) == false) result.Add(p);
+                            }
+                        }
+                    }
+                }
+                return result;
+            }
+        }
+
+        /// <summary>
         /// 判断文字是否为桩号
         /// </summary>
         public static bool IsMileageNumber(this string str)

@@ -116,6 +116,48 @@ namespace GLTools
         }
 
         /// <summary>
+        /// 绘制折线多段线，不加入图形数据库
+        /// </summary>
+        /// <param name="db">图形数据库</param>
+        /// <param name="isClosed">是否闭合</param>
+        /// <param name="contantWidth">线宽</param>
+        /// <param name="vertices">多线段的顶点 可变参数</param>
+        /// <returns></returns>
+        public static Polyline DrawPolyLine(this Database db, bool isClosed, double contantWidth, params Point2d[] vertices)
+        {
+            if (vertices.Length < 2)  // 顶点个数小于2 无法绘制
+            {
+                return null;
+            }
+            // 声明一个多段线对象
+            Polyline pline = new Polyline();
+            // 添加多段线顶点
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                pline.AddVertexAt(i, vertices[i], 0, 0, 0);
+            }
+            if (isClosed)
+            {
+                pline.Closed = true;
+            }
+            // 设置多段线的线宽
+            pline.ConstantWidth = contantWidth;
+            return pline;
+        }
+
+        /// <summary>
+        /// 绘制圆
+        /// </summary>
+        /// <param name="db">图形数据库</param>
+        /// <param name="center">圆心</param>
+        /// <param name="radius">半径</param>
+        /// <returns></returns>
+        public static ObjectId AddCircleToModeSpace(this Database db, Point3d center, double radius)
+        {
+            return db.AddEntityToModeSpace(new Circle((center), new Vector3d(0, 0, 1), radius));
+        }
+
+        /// <summary>
         /// 添加文字
         /// </summary>
         /// <param name="db"></param>

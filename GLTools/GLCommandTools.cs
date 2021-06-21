@@ -29,8 +29,12 @@ namespace GLTools
         [CommandMethod("CSCS")]
         public void test()
         {
-            ObjectId plineId = db.AddPolyLineToModeSpace(true, 0, new Point2d(0, 100), new Point2d(100, 100),
-                                new Point2d(100, 0), new Point2d(0, 0));
+            SelectionSet ss = doc.GetSelectionSet("请选择");
+            List<Point3d> result = db.GetAllLineIntersection(ss);
+            foreach(Point3d p in result)
+            {
+                db.AddCircleToModeSpace(p, 50);
+            }
         }
 
         /// <summary>
@@ -596,40 +600,56 @@ namespace GLTools
 
             offsetDistance = ed.GetNumberOnScreen("请输入偏移距离: ");  // 偏移距离
             ss = doc.GetSelectionSet("请选择4条直线", filterLine);
+            // 设置当前图层
+            db.SetLayerCurrent("结-钢筋", 1);
 
-            using (Transaction trans = db.TransactionManager.StartTransaction())
+            if (offsetDistance != null)
             {
                 while (ss != null && ss.Count == 4)
                 {
-                    Line Line0 = trans.GetObject(ss[0].ObjectId, OpenMode.ForRead) as Line;
-                    
-                    int[] index = new int[] {1, 2, 3 };
-                    for(int i=1; i<4; i++)
+                    List<Point3d> interPoints = db.GetAllLineIntersection(ss);
+                    if(interPoints.Count()==4)
                     {
-                        Line Linei = trans.GetObject(ss[i].ObjectId, OpenMode.ForRead) as Line;
-                        if (Line0.Angle == Linei.Angle || Line0.Angle + Linei.Angle == Math.PI*2)
+                        using (Transaction trans = db.TransactionManager.StartTransaction())
                         {
-                            int[] indexexp = index.Except(new int[] { i }).ToArray();
+                            // 求返回点集的中点
+                            double sumX = 0, sumY = 0, sumZ = 0;
+                            foreach (Point3d p in interPoints)
+                            {
+                                sumX += p.X; sumY += p.Y; sumZ += p.Z;
+                            }
+                            Point3d midPoint = new Point3d(sumX / 4, sumY / 4, sumZ / 4);
 
-                            Point3d p0 = db.GetLineIntersection(ss[0].ObjectId, ss[indexexp[0]].ObjectId);
-                            Point3d p1 = db.GetLineIntersection(ss[indexexp[0]].ObjectId, ss[i].ObjectId);
-                            Point3d p2 = db.GetLineIntersection(ss[i].ObjectId, ss[indexexp[1]].ObjectId);
-                            Point3d p3 = db.GetLineIntersection(ss[indexexp[1]].ObjectId, ss[0].ObjectId);
-
-                            ObjectId plineId = db.AddPolyLineToModeSpace(true, 0, new Point2d(p0.X, p0.Y), new Point2d(p1.X, p1.Y), 
+                            Point3d? p0raw = null, p1raw = null, p2raw = null, p3raw = null;
+                            foreach (Point3d p in interPoints)
+                            {
+                                Line line = new Line(midPoint, p);
+                                // 此处未考虑壁板斜交倾角很大的情况
+                                if (line.Angle > Math.PI && line.Angle < Math.PI * 1.5) p0raw = p;
+                                else if (line.Angle > Math.PI * 0.5 && line.Angle < Math.PI) p1raw = p;
+                                else if (line.Angle > 0 && line.Angle < Math.PI * 0.5) p2raw = p;
+                                else if (line.Angle > Math.PI * 1.5 && line.Angle < Math.PI * 2) p3raw = p;
+                            }
+                            if (p0raw != null && p1raw != null && p2raw != null && p3raw != null)
+                            {
+                                Point3d p0 = (Point3d)p0raw; Point3d p1 = (Point3d)p1raw; Point3d p2 = (Point3d)p2raw; Point3d p3 = (Point3d)p3raw;
+                                Polyline pline = db.DrawPolyLine(true, 0,
+                                new Point2d(p0.X, p0.Y), new Point2d(p1.X, p1.Y),
                                 new Point2d(p2.X, p2.Y), new Point2d(p3.X, p3.Y));
-
-                            Polyline pline = trans.GetObject(plineId, OpenMode.ForRead) as Polyline;
-                            Curve plineOffset = pline.GetOffsetCurves((double)offsetDistance)[0] as Curve;
-                            ObjectId newId = db.AddEntityToModeSpace(plineOffset);
-                            newId.ChangeEntityLayer("结-钢筋");
-                            break;
+                                
+                                Curve plineOffset = pline.GetOffsetCurves((double)offsetDistance)[0] as Curve;
+                                for (int i = 0; i < pline.NumberOfVertices; i++)
+                                {
+                                    Point3d p = pline.GetPoint3dAt(i);
+                                    db.AddCircleToModeSpace(p, 20);
+                                }
+                            }
+                            trans.Commit();
                         }
                     }
 
                     ss = doc.GetSelectionSet("请选择4条直线", filterLine);
                 }
-                trans.Commit();
             }
         }
     }

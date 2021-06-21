@@ -41,6 +41,26 @@ namespace GLTools
         }
 
         /// <summary>
+        /// 改变图形颜色  图形没有添加到图形数据库
+        /// </summary>
+        /// <param name="ent">图形对象</param>
+        /// <param name="colorIndex">颜色索引</param>
+        /// <returns></returns>
+        public static void ChangeEntityColor(this Entity ent, short colorIndex)
+        {
+            // 判断图形的IsNewlyObject
+            if (ent.IsNewObject)
+            {
+                ent.ColorIndex = colorIndex;
+            }
+            // 不是新图形就调用上面的方法
+            else
+            {
+                ent.ObjectId.ChangeEntityColor(colorIndex);
+            }
+        }
+
+        /// <summary>
         /// 改变图形图层
         /// </summary>
         /// <param name="c1Id">图形的ObjectId</param>
@@ -66,29 +86,6 @@ namespace GLTools
             }
             return c1Id;
         }
-
-
-        /// <summary>
-        /// 改变图形颜色  图形没有添加到图形数据库
-        /// </summary>
-        /// <param name="ent">图形对象</param>
-        /// <param name="colorIndex">颜色索引</param>
-        /// <returns></returns>
-        public static void ChangeEntityColor(this Entity ent, short colorIndex)
-        {
-            // 判断图形的IsNewlyObject
-            if (ent.IsNewObject)
-            {
-                ent.ColorIndex = colorIndex;
-            }
-            // 不是新图形就调用上面的方法
-            else
-            {
-                ent.ObjectId.ChangeEntityColor(colorIndex);
-            }
-        }
-
-
 
         /// <summary>
         ///  移动图形 图形已经加入到图形数据库中
