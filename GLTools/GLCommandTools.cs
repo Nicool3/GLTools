@@ -577,7 +577,7 @@ namespace GLTools
                             Line line = new Line(p, p+v);
                             Point3dCollection points = new Point3dCollection();
                             maxPline.IntersectWith(line, Intersect.ExtendBoth, new Plane(), points, IntPtr.Zero, IntPtr.Zero);
-                            ObjectId newId = db.AddLineToModeSpace(points[0], points[1]);
+                            ObjectId newId = db.AddLineToModeSpace(points[0], points[points.Count-1]);
                         }
                     }
                     trans.Commit();
@@ -603,7 +603,7 @@ namespace GLTools
             // 设置当前图层
             db.SetLayerCurrent("结-钢筋", 1);
 
-            if (offsetDistance != null)
+            if (offsetDistance != null && ss.Count == 4)
             {
                 while (ss != null && ss.Count == 4)
                 {
@@ -636,12 +636,15 @@ namespace GLTools
                                 Polyline pline = db.DrawPolyLine(true, 0,
                                 new Point2d(p0.X, p0.Y), new Point2d(p1.X, p1.Y),
                                 new Point2d(p2.X, p2.Y), new Point2d(p3.X, p3.Y));
-                                
-                                Curve plineOffset = pline.GetOffsetCurves((double)offsetDistance)[0] as Curve;
-                                for (int i = 0; i < pline.NumberOfVertices; i++)
-                                {
-                                    Point3d p = pline.GetPoint3dAt(i);
-                                    db.AddCircleToModeSpace(p, 20);
+
+                                Curve curveOffset = pline.GetOffsetCurves((double)offsetDistance)[0] as Curve;
+                                if (curveOffset.GetType() == typeof(Polyline)) {
+                                    Polyline plineOffset = curveOffset as Polyline;
+                                    for (int i = 0; i < plineOffset.NumberOfVertices; i++)
+                                    {
+                                        Point3d p = plineOffset.GetPoint3dAt(i);
+                                        db.AddCircleToModeSpace(p, (double)offsetDistance/2);
+                                    }
                                 }
                             }
                             trans.Commit();
@@ -649,6 +652,27 @@ namespace GLTools
                     }
 
                     ss = doc.GetSelectionSet("请选择4条直线", filterLine);
+                }
+            }
+            else if (offsetDistance != null && ss.Count > 4)
+            {
+                double? maxdis = ed.GetNumberOnScreen("请输入最大壁厚或板厚: ");
+                if (maxdis != null) { 
+
+                    List<Point3d> interPoints = db.GetAllLineIntersection(ss);
+                    List<Point3d> assignedPoints = new List<Point3d> { };
+                    List<Point3d[]> groupPoints = new List<Point3d[]> { };
+                    foreach (Point3d p in interPoints)
+                    {
+                        if (assignedPoints.Contains(p) == false) {
+                            int count = 0;
+                            foreach (Point3d subp in interPoints)
+                            {
+                                if (p.GetDistanceBetweenTwoPoint(subp) < (double)maxdis) count++;
+                                else if (p.GetDistanceBetweenTwoPoint(subp) < (double)maxdis) count++;
+                            }
+                        }
+                    }
                 }
             }
         }
