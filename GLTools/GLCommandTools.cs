@@ -29,58 +29,18 @@ namespace GLTools
         [CommandMethod("CSCS")]
         public void test()
         {
-            SelectionSet ss = null;
-            double? offsetDistance = null;
-
-            // 多段线过滤器
-            string str = "LINE";
-            SelectionFilter filterLine = str.GetSingleTypeFilter();
-
-            offsetDistance = ed.GetNumberOnScreen("请输入偏移距离: ");  // 偏移距离
-            double? maxdis = ed.GetNumberOnScreen("请输入最大壁厚或板厚: ");
-            ss = doc.GetSelectionSet("请选择4条直线", filterLine);
-
-            List<Point3d> interPoints = db.GetAllLineIntersection(ss);
-            ed.WriteMessage(ss.Count + "\n");
-            List<Point3d> assignedPoints = new List<Point3d> { };
-            List<Point3d[]> groupPoints = new List<Point3d[]> { };
-            foreach (Point3d p in interPoints)
+            ObjectId objId = doc.GetEntityOnScreen("Please Select: ");
+            using (Transaction trans = db.TransactionManager.StartTransaction())
             {
-                if (assignedPoints.Contains(p) == false)
-                {
-                    ed.WriteMessage(p.ToString()+"\n");
-                    List<Point3d> tempPoints = new List<Point3d> { };
-                    foreach (Point3d subp in interPoints)
-                    {
-                        if ((p.X == subp.X || p.Y == subp.Y) && (p.GetDistanceBetweenTwoPoint(subp) < (double)maxdis))
-                        {
-                            tempPoints.Add(p);
-                            ed.WriteMessage(subp.ToString() + "\n");
-                            //db.AddCircleToModeSpace(p, 10);
-                        }
-
-                        else if ((p.X != subp.X && p.Y != subp.Y) && (p.GetDistanceBetweenTwoPoint(subp) < (double)maxdis * 1.415))
-                        {
-                            tempPoints.Add(p);
-                            ed.WriteMessage(subp.ToString() + "\n");
-                            //db.AddCircleToModeSpace(p, 10);
-                        }
-                    }
-                    if (tempPoints.Count() == 4)
-                    {
-                        Point3d[] ps = tempPoints.ToArray();
-                        groupPoints.Add(ps);
-                        assignedPoints.AddRange(tempPoints);
-                        foreach (Point3d ppp in ps)
-                        {
-                            db.AddCircleToModeSpace(ppp, 10);
-                        }
-                    }
-                }
-                break;
+                Entity ent = trans.GetObject(objId, OpenMode.ForRead) as Entity;
+                Polyline pline = ent as Polyline;
+                db.ConvertPlineToLine(pline);
+                objId.EraseEntity();
+                trans.Commit();
             }
-        }
 
+        }
+        
         /// <summary>
         /// 管廊纵断面工具-标高及桩号初始化
         /// </summary>
@@ -624,6 +584,16 @@ namespace GLTools
                             ObjectId newId = db.AddLineToModeSpace(points[0], points[points.Count-1]);
                         }
                     }
+
+                    // 删除内圈多段线
+                    foreach (ObjectId objId in listOffsetPlineId)
+                    {
+                        objId.EraseEntity();
+                    }
+                    // 外圈多段线转换为直线并删除多段线
+                    db.ConvertPlineToLine(maxPline);
+                    maxId.EraseEntity();
+
                     trans.Commit();
                 }
             }
@@ -711,8 +681,8 @@ namespace GLTools
                             List<Point3d> tempPoints = new List<Point3d> { };
                             foreach (Point3d subp in interPoints)
                             {
-                                if ((p.X==subp.X||p.Y==subp.Y)&&(p.GetDistanceBetweenTwoPoint(subp) < (double)maxdis)) tempPoints.Add(p);
-                                else if ((p.X != subp.X && p.Y != subp.Y) && (p.GetDistanceBetweenTwoPoint(subp) < (double)maxdis*1.415)) tempPoints.Add(p);
+                                if ((p.X==subp.X||p.Y==subp.Y)&&(p.GetDistanceBetweenTwoPoint(subp) < (double)maxdis)) tempPoints.Add(subp);
+                                else if ((p.X != subp.X && p.Y != subp.Y) && (p.GetDistanceBetweenTwoPoint(subp) < (double)maxdis*1.415)) tempPoints.Add(subp);
                             }
                             if (tempPoints.Count() == 4)
                             {

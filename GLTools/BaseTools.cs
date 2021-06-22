@@ -33,7 +33,6 @@ namespace GLTools
             return angle * 180 / Math.PI;
         }
 
-
         /// <summary>
         /// 判断三个点是否在同一直线上
         /// </summary>
@@ -162,6 +161,82 @@ namespace GLTools
                 }
                 return result;
             }
+        }
+
+        /// <summary>
+        /// 将多段线转换为直线
+        /// </summary>
+        public static ObjectId[] ConvertPlineToLine(this Database db, Polyline pline)
+        {
+            List<Line> lines = new List<Line> { };
+            if (pline != null)
+            {
+                int count = pline.NumberOfVertices;
+                if (pline.Closed == true)
+                {
+                    for (int i = 0; i< count; i++)
+                    {
+                        lines.Add(new Line(pline.GetPoint3dAt(i), pline.GetPoint3dAt((i + 1)% count)));
+                    }
+                }
+                if (pline.Closed == false)
+                {
+                    for (int i = 0; i < count-1; i++)
+                    {
+                        lines.Add(new Line(pline.GetPoint3dAt(i), pline.GetPoint3dAt(i + 1)));
+                    }
+                }
+            }
+            return db.AddEntityToModeSpace(lines.ToArray());
+        }
+
+        /// <summary>
+        /// 将多条直线合并去重
+        /// </summary>
+        public static ObjectId[] OverkillLine(this Database db, SelectionSet ss)
+        {
+            List<Line> rawlines = new List<Line> { };
+            List<Line> lines = new List<Line> { };
+
+            if (ss != null)
+            {
+                foreach(SelectedObject obj in ss)
+                {
+                    if (obj != null)
+                    {
+                        Entity ent = obj.ObjectId.GetObject(OpenMode.ForRead) as Entity;
+                        if (ent.GetType() == typeof(Line))
+                        {
+                            Line rawline = ent as Line;
+                            rawlines.Add(rawline);
+                        }
+                    }
+                }
+            }
+
+            foreach(Line rawline in rawlines)
+            {
+                Point3d sp0 = rawline.StartPoint;
+                Point3d ep0 = rawline.EndPoint;
+                double ag0 = rawline.Angle;
+                Vector3d v0 = sp0.GetVectorTo(ep0);
+
+                foreach (Line subrawline in rawlines)
+                {
+                    if((subrawline != rawline) && (subrawline.Angle == ag0 || (subrawline.Angle + ag0)== Math.PI))
+                    {
+                        Point3d sp1 = subrawline.StartPoint;
+                        Point3d ep1 = subrawline.EndPoint;
+                        Vector3d v1 = sp0.GetVectorTo(sp1);
+                        if (v0.GetAngleTo(v1) == 0 || v0.GetAngleTo(v1) == Math.PI)
+                        {
+                            //......
+                        }
+                    }
+                }
+            }
+
+            return db.AddEntityToModeSpace(lines.ToArray());
         }
 
         /// <summary>
