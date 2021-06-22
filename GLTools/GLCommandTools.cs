@@ -29,11 +29,55 @@ namespace GLTools
         [CommandMethod("CSCS")]
         public void test()
         {
-            SelectionSet ss = doc.GetSelectionSet("请选择");
-            List<Point3d> result = db.GetAllLineIntersection(ss);
-            foreach(Point3d p in result)
+            SelectionSet ss = null;
+            double? offsetDistance = null;
+
+            // 多段线过滤器
+            string str = "LINE";
+            SelectionFilter filterLine = str.GetSingleTypeFilter();
+
+            offsetDistance = ed.GetNumberOnScreen("请输入偏移距离: ");  // 偏移距离
+            double? maxdis = ed.GetNumberOnScreen("请输入最大壁厚或板厚: ");
+            ss = doc.GetSelectionSet("请选择4条直线", filterLine);
+
+            List<Point3d> interPoints = db.GetAllLineIntersection(ss);
+            ed.WriteMessage(ss.Count + "\n");
+            List<Point3d> assignedPoints = new List<Point3d> { };
+            List<Point3d[]> groupPoints = new List<Point3d[]> { };
+            foreach (Point3d p in interPoints)
             {
-                db.AddCircleToModeSpace(p, 50);
+                if (assignedPoints.Contains(p) == false)
+                {
+                    ed.WriteMessage(p.ToString()+"\n");
+                    List<Point3d> tempPoints = new List<Point3d> { };
+                    foreach (Point3d subp in interPoints)
+                    {
+                        if ((p.X == subp.X || p.Y == subp.Y) && (p.GetDistanceBetweenTwoPoint(subp) < (double)maxdis))
+                        {
+                            tempPoints.Add(p);
+                            ed.WriteMessage(subp.ToString() + "\n");
+                            //db.AddCircleToModeSpace(p, 10);
+                        }
+
+                        else if ((p.X != subp.X && p.Y != subp.Y) && (p.GetDistanceBetweenTwoPoint(subp) < (double)maxdis * 1.415))
+                        {
+                            tempPoints.Add(p);
+                            ed.WriteMessage(subp.ToString() + "\n");
+                            //db.AddCircleToModeSpace(p, 10);
+                        }
+                    }
+                    if (tempPoints.Count() == 4)
+                    {
+                        Point3d[] ps = tempPoints.ToArray();
+                        groupPoints.Add(ps);
+                        assignedPoints.AddRange(tempPoints);
+                        foreach (Point3d ppp in ps)
+                        {
+                            db.AddCircleToModeSpace(ppp, 10);
+                        }
+                    }
+                }
+                break;
             }
         }
 
@@ -658,18 +702,63 @@ namespace GLTools
             {
                 double? maxdis = ed.GetNumberOnScreen("请输入最大壁厚或板厚: ");
                 if (maxdis != null) { 
-
                     List<Point3d> interPoints = db.GetAllLineIntersection(ss);
                     List<Point3d> assignedPoints = new List<Point3d> { };
                     List<Point3d[]> groupPoints = new List<Point3d[]> { };
                     foreach (Point3d p in interPoints)
                     {
                         if (assignedPoints.Contains(p) == false) {
-                            int count = 0;
+                            List<Point3d> tempPoints = new List<Point3d> { };
                             foreach (Point3d subp in interPoints)
                             {
-                                if (p.GetDistanceBetweenTwoPoint(subp) < (double)maxdis) count++;
-                                else if (p.GetDistanceBetweenTwoPoint(subp) < (double)maxdis) count++;
+                                if ((p.X==subp.X||p.Y==subp.Y)&&(p.GetDistanceBetweenTwoPoint(subp) < (double)maxdis)) tempPoints.Add(p);
+                                else if ((p.X != subp.X && p.Y != subp.Y) && (p.GetDistanceBetweenTwoPoint(subp) < (double)maxdis*1.415)) tempPoints.Add(p);
+                            }
+                            if (tempPoints.Count() == 4)
+                            {
+                                Point3d[] ps = tempPoints.ToArray();
+                                groupPoints.Add(ps);
+                                assignedPoints.AddRange(tempPoints);
+                            }
+                        }
+                    }
+                    foreach (Point3d[] ps in groupPoints)
+                    {
+                        // 求返回点集的中点
+                        double sumX = 0, sumY = 0, sumZ = 0;
+                        foreach (Point3d p in ps)
+                        {
+                            sumX += p.X; sumY += p.Y; sumZ += p.Z;
+                        }
+                        Point3d midPoint = new Point3d(sumX / 4, sumY / 4, sumZ / 4);
+
+                        Point3d? p0raw = null, p1raw = null, p2raw = null, p3raw = null;
+
+                        foreach (Point3d p in ps)
+                        {
+                            Line line = new Line(midPoint, p);
+                            // 此处未考虑壁板斜交倾角很大的情况
+                            if (line.Angle > Math.PI && line.Angle < Math.PI * 1.5) p0raw = p;
+                            else if (line.Angle > Math.PI * 0.5 && line.Angle < Math.PI) p1raw = p;
+                            else if (line.Angle > 0 && line.Angle < Math.PI * 0.5) p2raw = p;
+                            else if (line.Angle > Math.PI * 1.5 && line.Angle < Math.PI * 2) p3raw = p;
+                        }
+                        if (p0raw != null && p1raw != null && p2raw != null && p3raw != null)
+                        {
+                            Point3d p0 = (Point3d)p0raw; Point3d p1 = (Point3d)p1raw; Point3d p2 = (Point3d)p2raw; Point3d p3 = (Point3d)p3raw;
+                            Polyline pline = db.DrawPolyLine(true, 0,
+                            new Point2d(p0.X, p0.Y), new Point2d(p1.X, p1.Y),
+                            new Point2d(p2.X, p2.Y), new Point2d(p3.X, p3.Y));
+
+                            Curve curveOffset = pline.GetOffsetCurves((double)offsetDistance)[0] as Curve;
+                            if (curveOffset.GetType() == typeof(Polyline))
+                            {
+                                Polyline plineOffset = curveOffset as Polyline;
+                                for (int i = 0; i < plineOffset.NumberOfVertices; i++)
+                                {
+                                    Point3d p = plineOffset.GetPoint3dAt(i);
+                                    db.AddCircleToModeSpace(p, (double)offsetDistance / 2);
+                                }
                             }
                         }
                     }
