@@ -67,7 +67,8 @@ namespace GLTools
 
             db.AddEntityToModeSpace(newlines.ToArray());
             */
-            Line line1=null, line2=null, newline=null;
+            using (Transaction trans = db.TransactionManager.StartTransaction()) { 
+                Line line1=null, line2=null, newline=null;
             if (rawlines.IsOverlapLine(out line1, out line2, out newline) == true)
             {
                 deletelines.Add(line1);
@@ -90,6 +91,7 @@ namespace GLTools
             foreach (Line deleteline in deletelines) deleteline.ObjectId.EraseEntity();
 
             db.AddEntityToModeSpace(newlines.ToArray());
+            }
         }
         
         /// <summary>
