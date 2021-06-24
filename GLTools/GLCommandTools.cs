@@ -26,42 +26,6 @@ namespace GLTools
         /// <summary>
         /// 测试
         /// </summary>
-        [CommandMethod("CSCSCS")]
-        public void testtest()
-        {
-            SelectionSet ss = doc.GetSelectionSet("Please Select: ");
-            List<Line> rawlines = new List<Line> { };
-            if (ss != null)
-            {
-                using (Transaction trans = db.TransactionManager.StartTransaction())
-                {
-                    foreach (SelectedObject obj in ss)
-                    {
-                        if (obj != null)
-                        {
-                            Entity ent = trans.GetObject(obj.ObjectId, OpenMode.ForRead) as Entity;
-                            if (ent != null && ent.GetType() == typeof(Line))
-                            {
-                                Line rawline = ent as Line;
-                                rawlines.Add(rawline);
-                            }
-                        }
-                    }
-                }
-            }
-            Line line1; Line line2;
-            if(rawlines.IsOverlapLine(out line1, out line2) == true)
-            {
-                line1.ChangeEntityColor(3);
-                line2.ChangeEntityColor(3);
-                //ed.WriteMessage(line1.StartPoint.ToString());
-                //ed.WriteMessage(line2.StartPoint.ToString());
-            } 
-        }
-
-        /// <summary>
-        /// 测试
-        /// </summary>
         [CommandMethod("CSCS")]
         public void test()
         {
@@ -88,72 +52,44 @@ namespace GLTools
                     }
                 }
             }
-            ed.WriteMessage(rawlines.Count().ToString());
-            
-            foreach (Line rawline in rawlines)
+            /*
+            Line line1, line2, newline;
+            while (rawlines.IsOverlapLine(out line1, out line2, out newline) == true)
             {
-                if (deletelines.Contains(rawline) == false) { 
-                    Point3d p0 = rawline.StartPoint;
-                    Point3d p1 = rawline.EndPoint;
-                    Vector3d vp = p0.GetVectorTo(p1);
-
-                    foreach (Line subrawline in rawlines)
-                    {
-                        if (subrawline != rawline)
-                        {
-                            Point3d subp0 = subrawline.StartPoint;
-                            Point3d subp1 = subrawline.EndPoint;
-                            Vector3d vsubp = subp0.GetVectorTo(subp1);
-                            Vector3d vp0subp0 = p0.GetVectorTo(subp0);
-
-                            if ((vp.GetAngleTo(vsubp) == 0 || vp.GetAngleTo(vsubp) == Math.PI) &&
-                                (vp.GetAngleTo(vp0subp0) == 0 || vp.GetAngleTo(vp0subp0) == Math.PI))
-                            {
-                                Vector3d vp0subp1 = p0.GetVectorTo(subp1);
-                                Vector3d vp1subp0 = p1.GetVectorTo(subp0);
-                                Vector3d vp1subp1 = p1.GetVectorTo(subp1);
-                                if (vp0subp0.GetAngleTo(vp1subp0) == Math.PI && vp0subp1.GetAngleTo(vp1subp1) == Math.PI)
-                                {
-                                    deletelines.Add(subrawline);
-                                    break;
-                                }
-                                else if(vp0subp0.GetAngleTo(vp1subp0) == Math.PI && vp0subp1.GetAngleTo(vp1subp1) == 0)
-                                {
-                                    if (vp.GetAngleTo(vsubp) == 0)
-                                    {
-                                        newlines.Add(new Line(p0, subp1));
-                                    }
-                                    else if (vp.GetAngleTo(vsubp) == Math.PI)
-                                    {
-                                        newlines.Add(new Line(p1, subp1));
-                                    }
-                                    deletelines.Add(subrawline);
-                                    deletelines.Add(rawline);
-                                    rawlines.AddRange(newlines);
-                                    break;
-                                }
-                                else if (vp0subp0.GetAngleTo(vp1subp0) == 0 && vp0subp1.GetAngleTo(vp1subp1) == Math.PI)
-                                {
-                                    if (vp.GetAngleTo(vsubp) == 0)
-                                    {
-                                        newlines.Add(new Line(subp0, p1));
-                                    }
-                                    else if (vp.GetAngleTo(vsubp) == Math.PI)
-                                    {
-                                        newlines.Add(new Line(p0, subp0));
-                                    }
-                                    deletelines.Add(subrawline);
-                                    deletelines.Add(rawline);
-                                    rawlines.AddRange(newlines);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
+                deletelines.Add(line1);
+                deletelines.Add(line2);
+                rawlines.Except(deletelines);
+                newlines.Add(newline);
+                rawlines.Add(newline);
             }
+
+            foreach(Line deleteline in deletelines) deleteline.ObjectId.EraseEntity();
+
             db.AddEntityToModeSpace(newlines.ToArray());
-            foreach (Line line in deletelines) line.ObjectId.EraseEntity();
+            */
+            Line line1=null, line2=null, newline=null;
+            if (rawlines.IsOverlapLine(out line1, out line2, out newline) == true)
+            {
+                deletelines.Add(line1);
+                deletelines.Add(line2);
+                rawlines.Remove(line1);
+                rawlines.Remove(line2);
+                newlines.Add(newline);
+                rawlines.Add(newline);
+            }
+            if (rawlines.IsOverlapLine(out line1, out line2, out newline) == true)
+            {
+                deletelines.Add(line1);
+                deletelines.Add(line2);
+                rawlines.Remove(line1);
+                rawlines.Remove(line2);
+                newlines.Add(newline);
+                rawlines.Add(newline);
+            }
+            foreach (Line line in rawlines) line.ChangeEntityColor(3);
+            foreach (Line deleteline in deletelines) deleteline.ObjectId.EraseEntity();
+
+            db.AddEntityToModeSpace(newlines.ToArray());
         }
         
         /// <summary>

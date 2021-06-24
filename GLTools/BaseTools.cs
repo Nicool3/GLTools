@@ -193,16 +193,18 @@ namespace GLTools
         /// <summary>
         /// 判断直线集中是否有重叠部分并返回任意重叠的两条线
         /// </summary>
-        public static bool IsOverlapLine(this List<Line> lineList, out Line line1, out Line line2)
+        public static bool IsOverlapLine(this List<Line> lineList, out Line line1, out Line line2, out Line newline)
         {
             bool result = false;
             line1 = null;
             line2 = null;
+            newline = null;
 
             foreach (Line line in lineList)
             {
                 Point3d p0 = line.StartPoint;
                 Point3d p1 = line.EndPoint;
+                Vector3d v = p0.GetVectorTo(p1);
 
                 foreach (Line subline in lineList)
                 {
@@ -210,18 +212,23 @@ namespace GLTools
                     {
                         Point3d subp0 = subline.StartPoint;
                         Point3d subp1 = subline.EndPoint;
+                        Vector3d subv = subp0.GetVectorTo(subp1);
                         Vector3d vp0subp0 = p0.GetVectorTo(subp0);
                         Vector3d vp0subp1 = p0.GetVectorTo(subp1);
                         Vector3d vp1subp0 = p1.GetVectorTo(subp0);
                         Vector3d vp1subp1 = p1.GetVectorTo(subp1);
-
-                        if (vp0subp0.GetAngleTo(vp1subp0) == Math.PI || vp0subp1.GetAngleTo(vp1subp1) == Math.PI||
-                            p0== subp0 || p0==subp1 || p1==subp0 || p1==subp1)
-                        {
-                            result = true;
-                            line1 = line;
-                            line2 = subline;
-                            break;
+                        if (v.GetAngleTo(subv) == 0 || v.GetAngleTo(subv) == Math.PI) { 
+                            if (vp0subp0.GetAngleTo(vp1subp0) == Math.PI || vp0subp1.GetAngleTo(vp1subp1) == Math.PI||
+                                p0 == subp0 || p0==subp1 || p1==subp0 || p1==subp1)
+                            {
+                                result = true;
+                                line1 = line;
+                                line2 = subline;
+                                Point3d[] allpoints = new Point3d[] { p0, p1, subp0, subp1 };
+                                var orderpoints = allpoints.OrderBy(s => s.X).ThenBy(s => s.Y).ToArray();
+                                newline = new Line(orderpoints[0], orderpoints[orderpoints.Count() - 1]);
+                                break;
+                            }
                         }
                     }
                 }
