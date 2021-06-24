@@ -191,14 +191,11 @@ namespace GLTools
         }
 
         /// <summary>
-        /// 判断直线集中是否有重叠部分并返回任意重叠的两条线
+        /// 判断直线集中是否有重叠部分
         /// </summary>
-        public static bool IsOverlapLine(this List<Line> lineList, out Line line1, out Line line2, out Line newline)
+        public static bool IsOverlapLine(this List<Line> lineList)
         {
-            bool result = false;
-            line1 = null;
-            line2 = null;
-            newline = null;
+            bool flag = false;
 
             foreach (Line line in lineList)
             {
@@ -221,20 +218,15 @@ namespace GLTools
                             if (vp0subp0.GetAngleTo(vp1subp0) == Math.PI || vp0subp1.GetAngleTo(vp1subp1) == Math.PI||
                                 p0 == subp0 || p0==subp1 || p1==subp0 || p1==subp1)
                             {
-                                result = true;
-                                line1 = line;
-                                line2 = subline;
-                                Point3d[] allpoints = new Point3d[] { p0, p1, subp0, subp1 };
-                                var orderpoints = allpoints.OrderBy(s => s.X).ThenBy(s => s.Y).ToArray();
-                                newline = new Line(orderpoints[0], orderpoints[orderpoints.Count() - 1]);
+                                flag = true;
                                 break;
                             }
                         }
                     }
                 }
-                if (result == true) break;
+                if (flag) break;
             }
-            return result;
+            return flag;
         }
 
 

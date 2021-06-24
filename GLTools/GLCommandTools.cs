@@ -31,6 +31,7 @@ namespace GLTools
         {
             SelectionSet ss = doc.GetSelectionSet("Please Select: ");
             List<Line> rawlines = new List<Line> { };
+            List<Line> finallines = new List<Line> { };
             List<Line> deletelines = new List<Line> { };
             List<Line> newlines = new List<Line> { };
 
@@ -47,51 +48,49 @@ namespace GLTools
                             {
                                 Line rawline = ent as Line;
                                 rawlines.Add(rawline);
+                                finallines.Add(rawline);
                             }
                         }
                     }
                 }
             }
-            /*
-            Line line1, line2, newline;
-            while (rawlines.IsOverlapLine(out line1, out line2, out newline) == true)
-            {
-                deletelines.Add(line1);
-                deletelines.Add(line2);
-                rawlines.Except(deletelines);
-                newlines.Add(newline);
-                rawlines.Add(newline);
-            }
 
-            foreach(Line deleteline in deletelines) deleteline.ObjectId.EraseEntity();
+            Line line1 = null, line2 = null, newline = null;
 
-            db.AddEntityToModeSpace(newlines.ToArray());
-            */
-            using (Transaction trans = db.TransactionManager.StartTransaction()) { 
-                Line line1=null, line2=null, newline=null;
-            if (rawlines.IsOverlapLine(out line1, out line2, out newline) == true)
+            while (finallines.IsOverlapLine())
             {
-                deletelines.Add(line1);
-                deletelines.Add(line2);
-                rawlines.Remove(line1);
-                rawlines.Remove(line2);
-                newlines.Add(newline);
-                rawlines.Add(newline);
+                bool flag = false;
+                foreach (Line line in finallines)
+                {
+                    foreach (Line subline in finallines)
+                    {
+                        List<Line> temp = new List<Line> { line, subline };
+                        if (temp.IsOverlapLine())
+                        {
+                            flag = true;
+                            line1 = line;
+                            line2 = subline;
+                            Point3d[] allpoints = new Point3d[] { line.StartPoint, line.EndPoint, subline.StartPoint, subline.EndPoint };
+                            var orderpoints = allpoints.OrderBy(s => s.X).ThenBy(s => s.Y).ToArray();
+                            newline = new Line(orderpoints[0], orderpoints[orderpoints.Count() - 1]);
+                            break;
+                        }
+                    }
+                    if (flag) break;
+                }
+                if (flag) { 
+                    ed.WriteMessage("{0}\n{1}\n{2}\n", rawlines.Count().ToString(), deletelines.Count().ToString(), finallines.Count().ToString());
+                    deletelines.Add(line1);
+                    deletelines.Add(line2);
+                    finallines = finallines.Except(deletelines).ToList();
+                    finallines.Add(newline);
+                    ed.WriteMessage("{0}\n{1}\n{2}\n", rawlines.Count().ToString(), deletelines.Count().ToString(), finallines.Count().ToString());
+                }
             }
-            if (rawlines.IsOverlapLine(out line1, out line2, out newline) == true)
-            {
-                deletelines.Add(line1);
-                deletelines.Add(line2);
-                rawlines.Remove(line1);
-                rawlines.Remove(line2);
-                newlines.Add(newline);
-                rawlines.Add(newline);
-            }
-            foreach (Line line in rawlines) line.ChangeEntityColor(3);
             foreach (Line deleteline in deletelines) deleteline.ObjectId.EraseEntity();
+            newlines = finallines.Except(rawlines).ToList();
+            foreach (Line nline in newlines) db.AddEntityToModeSpace(nline);
 
-            db.AddEntityToModeSpace(newlines.ToArray());
-            }
         }
         
         /// <summary>
