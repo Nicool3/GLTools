@@ -64,16 +64,18 @@ namespace GLTools
                 {
                     foreach (Line subline in finallines)
                     {
-                        List<Line> temp = new List<Line> { line, subline };
-                        if (temp.IsOverlapLine())
-                        {
-                            flag = true;
-                            line1 = line;
-                            line2 = subline;
-                            Point3d[] allpoints = new Point3d[] { line.StartPoint, line.EndPoint, subline.StartPoint, subline.EndPoint };
-                            var orderpoints = allpoints.OrderBy(s => s.X).ThenBy(s => s.Y).ToArray();
-                            newline = new Line(orderpoints[0], orderpoints[orderpoints.Count() - 1]);
-                            break;
+                        if (subline != line) { 
+                            List<Line> temp = new List<Line> { line, subline };
+                            if (temp.IsOverlapLine())
+                            {
+                                flag = true;
+                                line1 = line;
+                                line2 = subline;
+                                Point3d[] allpoints = new Point3d[] { line.StartPoint, line.EndPoint, subline.StartPoint, subline.EndPoint };
+                                var orderpoints = allpoints.OrderBy(s => s.X).ThenBy(s => s.Y).ToArray();
+                                newline = new Line(orderpoints[0], orderpoints[orderpoints.Count() - 1]);
+                                break;
+                            }
                         }
                     }
                     if (flag) break;
