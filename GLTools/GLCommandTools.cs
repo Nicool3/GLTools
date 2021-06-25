@@ -84,14 +84,13 @@ namespace GLTools
                     deletelines.Add(line1);
                     deletelines.Add(line2);
                     finallines = finallines.Except(deletelines).ToList();
-                    finallines.Add(newline); 
+                    finallines.Add(newline);
                 }
             }
-            //foreach (Line deleteline in deletelines) deleteline.ObjectId.EraseEntity();
+            deletelines = deletelines.Intersect(rawlines).ToList();
+            foreach (Line deleteline in deletelines) deleteline.ObjectId.EraseEntity();
             newlines = finallines.Except(rawlines).ToList();
-            //foreach (Line nline in newlines) db.AddEntityToModeSpace(nline);
-            ed.WriteMessage("{0}\n{1}\n{2}\n{3}\n", rawlines.Count().ToString(), deletelines.Count().ToString(), newlines.Count().ToString(), finallines.Count().ToString());
-
+            foreach (Line nline in newlines) db.AddEntityToModeSpace(nline);
         }
         
         /// <summary>

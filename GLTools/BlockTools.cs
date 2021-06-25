@@ -135,6 +135,57 @@ namespace GLTools
                 }
             }
         }
+
+        /// <summary>
+        /// 生成图纸目录
+        /// </summary>
+        [CommandMethod("TZML")]
+        public void CreateMenu()
+        {
+            // 获取当前文档和数据库
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+            List<BlockData> lst = new List<BlockData>();
+
+            string blocktype = "INSERT";
+            SelectionFilter selFtrBlock = blocktype.GetSingleTypeFilter();
+            SelectionSet ss = doc.GetSelectionSet("请选择图框", selFtrBlock);
+            if (ss != null)
+            {
+                foreach (SelectedObject obj in ss)
+                {
+                    BlockData data = db.GetBlockData(obj.ObjectId);
+                    if (data.ProjectName != null) lst.Add(data);
+                }
+
+                if (lst.Count > 0)
+                {
+                    var orderlst = lst.OrderBy(s => s.DrawingNumber).ToList();
+                    Point3d? inp = ed.GetPointOnScreen("\n共找到" + lst.Count.ToString() + "个图框, 请点击图纸目录左上角点: ");
+                    if (inp != null)
+                    {
+                        Point3d p = (Point3d)inp;
+                        double h = 3.5, r = 0, f = 0.75;
+                        string t = "SMEDI";
+                        TextHorizontalMode thmode = TextHorizontalMode.TextLeft;
+                        TextVerticalMode tvmode = TextVerticalMode.TextBottom;
+
+                        db.AddTextToModeSpace("1", p + new Vector3d(29.78, -69.09, 0), h, r, f, t, thmode, tvmode);
+                        db.AddTextToModeSpace((orderlst[0].DrawingNumber.Substring(0, orderlst[0].DrawingNumber.Length-2) +"00"), p + new Vector3d(41.48, -69.09, 0), h, r, f, t, thmode, tvmode);
+                        db.AddTextToModeSpace("图纸目录", p + new Vector3d(78.36, -69.09, 0), h, r, f, t, thmode, tvmode);
+                        for (int i=0; i< orderlst.Count(); i++)
+                        {
+                            db.AddTextToModeSpace((i+2).ToString(), p + new Vector3d(29.78, -69.09 - 8 * (i+1), 0), h, r, f, t, thmode, tvmode);
+                            db.AddTextToModeSpace(orderlst[i].DrawingNumber, p + new Vector3d(41.48, -69.09 - 8* (i + 1), 0), h, r, f, t, thmode, tvmode);
+                            db.AddTextToModeSpace(orderlst[i].DrawingName, p + new Vector3d(78.36, -69.09 - 8 * (i + 1), 0), h, r, f, t, thmode, tvmode);
+                        }
+                        ed.WriteMessage("\n生成完成! ");
+                    }
+                }
+            }
+        }
     }
 }
 
