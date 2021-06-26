@@ -551,7 +551,6 @@ namespace GLTools
             offsetDistance = ed.GetNumberOnScreen("请输入保护层厚度: ");  // 偏移距离
             if (ss != null && offsetDistance!=null)
             {
-
                 using (Transaction trans = db.TransactionManager.StartTransaction())
                 {
                     List<ObjectId> listPlineId = new List<ObjectId> { };
@@ -585,6 +584,7 @@ namespace GLTools
                         if (objId == plineAreaMaxId)
                         {
                             Curve plineOffset = pline.GetOffsetCurves((double)offsetDistance)[0] as Curve;
+                            if (plineOffset.Area > pline.Area) plineOffset = pline.GetOffsetCurves(-(double)offsetDistance)[0] as Curve;
                             ObjectId newId = db.AddEntityToModeSpace(plineOffset);
                             maxId = newId;
                             newId.ChangeEntityLayer("结-钢筋");
@@ -592,6 +592,7 @@ namespace GLTools
                         else
                         {
                             Curve plineOffset = pline.GetOffsetCurves(-(double)offsetDistance)[0] as Curve;
+                            if (plineOffset.Area < pline.Area) plineOffset = pline.GetOffsetCurves((double)offsetDistance)[0] as Curve;
                             ObjectId newId = db.AddEntityToModeSpace(plineOffset);
                             listOffsetPlineId.Add(newId);
                             newId.ChangeEntityLayer("结-钢筋");
