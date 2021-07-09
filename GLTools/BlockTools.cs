@@ -42,7 +42,7 @@ namespace GLTools
         /// <summary>
         /// 块参照列表排序
         /// </summary>
-        public List<BlockData> SortBlockDataList(List<BlockData> BlockList, string method="RowFirst")
+        public List<BlockData> SortBlockDataList(List<BlockData> BlockList, string method = "RowFirst")
         {
             List<BlockData> lst = new List<BlockData>(BlockList);
             var result = lst;
@@ -85,7 +85,7 @@ namespace GLTools
                             AttributeReference AttRef = (AttributeReference)item.GetObject(OpenMode.ForWrite);
                             if (AttRef.Tag.ToString() == "图号")
                             {
-                                AttRef.TextString= NameHead + "-" + i.ToString("00");
+                                AttRef.TextString = NameHead + "-" + i.ToString("00");
                             }
                         }
                         i++;
@@ -114,7 +114,7 @@ namespace GLTools
 
             List<BlockData> lst = new List<BlockData>();
 
-            string blocktype = "INSERT"; 
+            string blocktype = "INSERT";
             SelectionFilter selFtrBlock = blocktype.GetSingleTypeFilter();
             SelectionSet ss = doc.GetSelectionSet("请选择图号需要重排的图框", selFtrBlock);
             if (ss != null)
@@ -122,13 +122,13 @@ namespace GLTools
                 foreach (SelectedObject obj in ss)
                 {
                     BlockData data = db.GetBlockData(obj.ObjectId);
-                    if (data.ProjectName!=null) lst.Add(data);
+                    if (data.ProjectName != null) lst.Add(data);
                 }
 
-                if (method != null && lst.Count>0)
+                if (method != null && lst.Count > 0)
                 {
                     lst = SortBlockDataList(lst, method);
-                    string str = ed.GetStringOnScreen("\n共找到"+ lst.Count.ToString() +"个图框, 请输入起始的完整图号: ");
+                    string str = ed.GetStringOnScreen("\n共找到" + lst.Count.ToString() + "个图框, 请输入起始的完整图号: ");
 
                     RenameDrawingNumber(db, lst, str);
                     ed.WriteMessage("\n修改完成! ");
@@ -173,18 +173,31 @@ namespace GLTools
                         TextVerticalMode tvmode = TextVerticalMode.TextBottom;
 
                         db.AddTextToModeSpace("1", p + new Vector3d(29.78, -69.09, 0), h, r, f, t, thmode, tvmode);
-                        db.AddTextToModeSpace((orderlst[0].DrawingNumber.Substring(0, orderlst[0].DrawingNumber.Length-2) +"00"), p + new Vector3d(41.48, -69.09, 0), h, r, f, t, thmode, tvmode);
+                        db.AddTextToModeSpace((orderlst[0].DrawingNumber.Substring(0, orderlst[0].DrawingNumber.Length - 2) + "00"), p + new Vector3d(41.48, -69.09, 0), h, r, f, t, thmode, tvmode);
                         db.AddTextToModeSpace("图纸目录", p + new Vector3d(78.36, -69.09, 0), h, r, f, t, thmode, tvmode);
-                        for (int i=0; i< orderlst.Count(); i++)
+                        for (int i = 0; i < orderlst.Count(); i++)
                         {
-                            db.AddTextToModeSpace((i+2).ToString(), p + new Vector3d(29.78, -69.09 - 8 * (i+1), 0), h, r, f, t, thmode, tvmode);
-                            db.AddTextToModeSpace(orderlst[i].DrawingNumber, p + new Vector3d(41.48, -69.09 - 8* (i + 1), 0), h, r, f, t, thmode, tvmode);
+                            db.AddTextToModeSpace((i + 2).ToString(), p + new Vector3d(29.78, -69.09 - 8 * (i + 1), 0), h, r, f, t, thmode, tvmode);
+                            db.AddTextToModeSpace(orderlst[i].DrawingNumber, p + new Vector3d(41.48, -69.09 - 8 * (i + 1), 0), h, r, f, t, thmode, tvmode);
                             db.AddTextToModeSpace(orderlst[i].DrawingName, p + new Vector3d(78.36, -69.09 - 8 * (i + 1), 0), h, r, f, t, thmode, tvmode);
                         }
                         ed.WriteMessage("\n生成完成! ");
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// 读图号和图名
+        /// </summary>
+        [CommandMethod("THTM")]
+        public void ReadNumName()
+        {
+            // 获取当前文档和数据库
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+            
         }
     }
 }
