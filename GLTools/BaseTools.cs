@@ -9,6 +9,9 @@ using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.EditorInput;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using PdfDocument = iTextSharp.text.pdf.PdfDocument;
 
 namespace GLTools
 {
@@ -125,7 +128,7 @@ namespace GLTools
             // 启动事务
             using (Transaction trans = db.TransactionManager.StartTransaction())
             {
-                if(ss != null)
+                if (ss != null)
                 {
                     foreach (SelectedObject obj in ss)
                     {
@@ -136,7 +139,7 @@ namespace GLTools
                             foreach (SelectedObject subobj in ss)
                             {
                                 Entity subent = trans.GetObject(obj.ObjectId, OpenMode.ForRead) as Entity;
-                                if ((subobj.ObjectId!=obj.ObjectId) && (subent.GetType() == typeof(Line) || subent.GetType() == typeof(Polyline)))
+                                if ((subobj.ObjectId != obj.ObjectId) && (subent.GetType() == typeof(Line) || subent.GetType() == typeof(Polyline)))
                                 {
                                     Curve Line2 = (Curve)trans.GetObject(subobj.ObjectId, OpenMode.ForRead);
                                     Point3dCollection points = new Point3dCollection();
@@ -154,7 +157,7 @@ namespace GLTools
                             for (int i = 0; i < pline.NumberOfVertices; i++)
                             {
                                 Point3d p = pline.GetPoint3dAt(i);
-                                if (p!=pline.StartPoint && p!=pline.EndPoint && result.Contains(p) == false) result.Add(p);
+                                if (p != pline.StartPoint && p != pline.EndPoint && result.Contains(p) == false) result.Add(p);
                             }
                         }
                     }
@@ -174,14 +177,14 @@ namespace GLTools
                 int count = pline.NumberOfVertices;
                 if (pline.Closed == true)
                 {
-                    for (int i = 0; i< count; i++)
+                    for (int i = 0; i < count; i++)
                     {
-                        lines.Add(new Line(pline.GetPoint3dAt(i), pline.GetPoint3dAt((i + 1)% count)));
+                        lines.Add(new Line(pline.GetPoint3dAt(i), pline.GetPoint3dAt((i + 1) % count)));
                     }
                 }
                 if (pline.Closed == false)
                 {
-                    for (int i = 0; i < count-1; i++)
+                    for (int i = 0; i < count - 1; i++)
                     {
                         lines.Add(new Line(pline.GetPoint3dAt(i), pline.GetPoint3dAt(i + 1)));
                     }
@@ -214,9 +217,10 @@ namespace GLTools
                         Vector3d vp0subp1 = p0.GetVectorTo(subp1);
                         Vector3d vp1subp0 = p1.GetVectorTo(subp0);
                         Vector3d vp1subp1 = p1.GetVectorTo(subp1);
-                        if (v.GetAngleTo(subv) == 0 || v.GetAngleTo(subv) == Math.PI) { 
-                            if (vp0subp0.GetAngleTo(vp1subp0) == Math.PI || vp0subp1.GetAngleTo(vp1subp1) == Math.PI||
-                                p0 == subp0 || p0==subp1 || p1==subp0 || p1==subp1)
+                        if (v.GetAngleTo(subv) == 0 || v.GetAngleTo(subv) == Math.PI)
+                        {
+                            if (vp0subp0.GetAngleTo(vp1subp0) == Math.PI || vp0subp1.GetAngleTo(vp1subp1) == Math.PI ||
+                                p0 == subp0 || p0 == subp1 || p1 == subp0 || p1 == subp1)
                             {
                                 flag = true;
                                 break;
@@ -240,7 +244,7 @@ namespace GLTools
 
             if (ss != null)
             {
-                foreach(SelectedObject obj in ss)
+                foreach (SelectedObject obj in ss)
                 {
                     if (obj != null)
                     {
@@ -254,7 +258,7 @@ namespace GLTools
                 }
             }
 
-            foreach(Line rawline in rawlines)
+            foreach (Line rawline in rawlines)
             {
                 Point3d p0 = rawline.StartPoint;
                 Point3d p1 = rawline.EndPoint;
@@ -262,14 +266,14 @@ namespace GLTools
 
                 foreach (Line subrawline in rawlines)
                 {
-                    if(subrawline != rawline)
+                    if (subrawline != rawline)
                     {
                         Point3d subp0 = subrawline.StartPoint;
                         Point3d subp1 = subrawline.EndPoint;
                         Vector3d subv = subp0.GetVectorTo(subp1);
                         Vector3d subv1 = p0.GetVectorTo(subp0);
 
-                        if ((v.GetAngleTo(subv) == 0 || v.GetAngleTo(subv) == Math.PI)&&
+                        if ((v.GetAngleTo(subv) == 0 || v.GetAngleTo(subv) == Math.PI) &&
                             (v.GetAngleTo(subv1) == 0 || v.GetAngleTo(subv1) == Math.PI))
                         {
                             subrawline.ObjectId.ChangeEntityColor(3);
@@ -308,15 +312,38 @@ namespace GLTools
         /// </summary>
         public static bool IsStructureName(this string str)
         {
-            string[] KeyNames = { "人员出入口", "通风口", "投料口", "接出口","交叉口", "端头井", "缝", "变坡", "防火墙"};
+            string[] KeyNames = { "人员出入口", "通风口", "投料口", "接出口", "交叉口", "端头井", "缝", "变坡", "防火墙" };
             int KeyNameCounts = KeyNames.Count();
             bool[] Flags = new bool[KeyNameCounts];
-            for(int i=0;i< KeyNameCounts; i++)
+            for (int i = 0; i < KeyNameCounts; i++)
             {
                 if (str.Contains(KeyNames[i])) Flags[i] = true;
             }
             return Flags.Contains(true);
         }
 
+        /// <summary>
+        /// 拆分PDF
+        /// </summary>
+        public static void PDFSplit(string inFile, string[] outFileArray)
+        {
+            if (outFileArray.Count() != new PdfReader(inFile).NumberOfPages)
+                throw new System.Exception("所选择的PDF页数与图号、图名数量不符, 请检查后重试");
+
+            using (var reader = new PdfReader(inFile))
+            {
+                // 注意起始页是从1开始的
+                for (int i = 1; i <= new PdfReader(inFile).NumberOfPages; i++)
+                {
+                    using (var sourceDocument = new iTextSharp.text.Document(reader.GetPageSizeWithRotation(i)))
+                    {
+                        var pdfCopyProvider = new PdfCopy(sourceDocument, new System.IO.FileStream(outFileArray[i-1], System.IO.FileMode.Create));
+                        sourceDocument.Open();
+                        var importedPage = pdfCopyProvider.GetImportedPage(reader, i);
+                        pdfCopyProvider.AddPage(importedPage);
+                    }
+                }
+            }
+        }
     }
 }

@@ -52,8 +52,9 @@ namespace GLTools
             if (myMenu == null)
             {
                 // 菜单名称
-                myMenu = acadApp.MenuGroups.Item(0).Menus.Add("管廊纵断面工具");
+                myMenu = acadApp.MenuGroups.Item(0).Menus.Add("实用工具箱");
 
+                myMenu.AddMenuItem(myMenu.Count, "批量重命名PDF", "THTM ");
                 myMenu.AddMenuItem(myMenu.Count, "测试程序", "CSCS ");
                 myMenu.AddMenuItem(myMenu.Count, "标高及桩号初始化", "GLCSH ");
                 myMenu.AddMenuItem(myMenu.Count, "两行数值相减", "SZXJ ");

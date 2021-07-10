@@ -51,6 +51,19 @@ namespace GLTools
         }
 
         /// <summary>
+        /// 输入字符串, 包含默认值
+        /// </summary>
+        public static string GetStringOnScreen(this Editor ed, string message, string defaultStr)
+        {
+            PromptResult Res;
+            PromptStringOptions Opts = new PromptStringOptions(message);
+            Opts.DefaultValue = defaultStr;
+            Res = ed.GetString(Opts);
+            if (Res.Status == PromptStatus.OK) return Res.StringResult;
+            else return null;
+        }
+
+        /// <summary>
         /// 输入布尔类型关键字
         /// </summary>
         public static bool GetBoolKeywordOnScreen(this Editor ed, string message)

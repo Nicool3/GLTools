@@ -8,6 +8,7 @@ using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.EditorInput;
+using Microsoft.Win32;
 
 [assembly: CommandClass(typeof(GLTools.BlockTools))]
 
@@ -188,7 +189,7 @@ namespace GLTools
         }
 
         /// <summary>
-        /// 读图号和图名
+        /// 读取图号和图名
         /// </summary>
         [CommandMethod("THTM")]
         public void ReadNumName()
@@ -197,7 +198,89 @@ namespace GLTools
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor ed = doc.Editor;
-            
+
+            List<string> textListNum = new List<string>();
+            List<string> textListName = new List<string>();
+
+            // 文字过滤器
+            List<string> strlist = new List<string> { "TEXT", "MTEXT" };
+            SelectionFilter selFtrText = strlist.GetTypeFilter("OR");
+
+            bool flag = false;
+            do
+            {
+                SelectionSet ssNum = doc.GetSelectionSet("请选择图号文字(单列)", selFtrText);
+                if (ssNum == null) return;
+                SelectionSet ssName = doc.GetSelectionSet("请选择与图号一一对应的图名文字(单列)", selFtrText);
+                if (ssName == null) return;
+                if (ssNum.Count != ssName.Count)
+                {
+                    ed.WriteMessage("图号和图名数量不一致，请重新选择!");
+                    return;
+                }
+
+                List<TextData> textDataNum = new List<TextData>();
+                List<TextData> textDataName = new List<TextData>();
+
+                foreach (SelectedObject obj in ssNum)
+                {
+                    if (obj != null) textDataNum.Add(db.GetTextData(obj.ObjectId));
+                }
+                textListNum.AddRange((from data in textDataNum
+                                   orderby data.Position.Y descending
+                                   select data.Content).ToList());
+
+                foreach (SelectedObject obj in ssName)
+                {
+                    if (obj != null) textDataName.Add(db.GetTextData(obj.ObjectId));
+                }
+                textListName.AddRange((from data in textDataName
+                                    orderby data.Position.Y descending
+                                    select data.Content).ToList());
+
+                flag = ed.GetBoolKeywordOnScreen("是否继续选择? ");
+            } while (flag);
+
+            string strInput = ed.GetStringOnScreen("请输入命名方式: ", "结构_{图号}_{图名}");
+            if (strInput == null) return;
+            if (strInput == "") strInput = "结构_{图号}_{图名}";
+            List<string> outFileList = new List<string>();
+
+            for (int i=0;i< textListNum.Count;i++)
+            {
+                string str = strInput.Replace("{图号}", textListNum[i]).Replace("{图名}", textListName[i]);
+                outFileList.Add(str+".pdf");
+            }
+
+            try
+            {
+                OpenFileDialog fileDialog = new OpenFileDialog();
+                fileDialog.Multiselect = false;
+                fileDialog.Title = "选择需要拆分的PDF文件";
+                fileDialog.Filter = "PDF(*.pdf)|*.pdf";
+                bool isFileOK = false;
+                fileDialog.FileOk += (s, e) => { isFileOK = true; };
+                fileDialog.ShowDialog();
+                if (isFileOK) {
+                    string inFile = fileDialog.FileName;
+                    string inFileFold = String.Join("\\", inFile.Split('\\').Take((inFile.Split('\\')).Length - 1));
+                    string outFileFold = inFileFold + "\\Export";
+                    if (false == System.IO.Directory.Exists(outFileFold))
+                    {
+                        System.IO.Directory.CreateDirectory(outFileFold);
+                    }
+                    string[] outFileArray = new string[outFileList.Count];
+                    for (int i = 0; i < outFileArray.Count(); i++)
+                        outFileArray[i] = outFileFold + "\\" + outFileList[i];
+
+                    BaseTools.PDFSplit(inFile, outFileArray);
+                    ed.WriteMessage($"文件成功拆分, 已保存至 {outFileFold}");
+                }
+            }
+            catch (System.Exception e)
+            {
+                ed.WriteMessage(e.Message);
+            }
         }
     }
 }

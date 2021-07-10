@@ -29,68 +29,13 @@ namespace GLTools
         [CommandMethod("CSCS")]
         public void test()
         {
-            SelectionSet ss = doc.GetSelectionSet("Please Select: ");
-            List<Line> rawlines = new List<Line> { };
-            List<Line> finallines = new List<Line> { };
-            List<Line> deletelines = new List<Line> { };
-            List<Line> newlines = new List<Line> { };
-
-            if (ss != null)
-            {
-                using (Transaction trans = db.TransactionManager.StartTransaction())
-                {
-                    foreach (SelectedObject obj in ss)
-                    {
-                        if (obj != null)
-                        {
-                            Entity ent = trans.GetObject(obj.ObjectId, OpenMode.ForRead) as Entity;
-                            if (ent != null && ent.GetType() == typeof(Line))
-                            {
-                                Line rawline = ent as Line;
-                                rawlines.Add(rawline);
-                                finallines.Add(rawline);
-                            }
-                        }
-                    }
-                }
+            try { 
+            BaseTools.PDFSplit("C:\\Files\\计算书.pdf", new string[] { "C:\\Files\\0.pdf", "C:\\Files\\1.pdf" });
             }
-
-            Line line1 = null, line2 = null, newline = null;
-
-            while (finallines.IsOverlapLine())
+            catch (System.Exception e)
             {
-                bool flag = false;
-                foreach (Line line in finallines)
-                {
-                    foreach (Line subline in finallines)
-                    {
-                        if (subline != line) { 
-                            List<Line> temp = new List<Line> { line, subline };
-                            if (temp.IsOverlapLine())
-                            {
-                                flag = true;
-                                line1 = line;
-                                line2 = subline;
-                                Point3d[] allpoints = new Point3d[] { line.StartPoint, line.EndPoint, subline.StartPoint, subline.EndPoint };
-                                var orderpoints = allpoints.OrderBy(s => s.X).ThenBy(s => s.Y).ToArray();
-                                newline = new Line(orderpoints[0], orderpoints[orderpoints.Count() - 1]);
-                                break;
-                            }
-                        }
-                    }
-                    if (flag) break;
-                }
-                if (flag) { 
-                    deletelines.Add(line1);
-                    deletelines.Add(line2);
-                    finallines = finallines.Except(deletelines).ToList();
-                    finallines.Add(newline);
-                }
+                ed.WriteMessage(e.Message);
             }
-            deletelines = deletelines.Intersect(rawlines).ToList();
-            foreach (Line deleteline in deletelines) deleteline.ObjectId.EraseEntity();
-            newlines = finallines.Except(rawlines).ToList();
-            foreach (Line nline in newlines) db.AddEntityToModeSpace(nline);
         }
         
         /// <summary>
