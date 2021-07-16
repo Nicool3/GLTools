@@ -733,5 +733,32 @@ namespace GLTools
                 }
             }
         }
+
+        ///// <summary>
+        ///// 文字与直线对齐
+        ///// </summary>
+        //[CommandMethod("WZDX")]
+        //public void textAlignToLine()
+        //{
+        //    ObjectId textId = doc.GetEntityOnScreen("请选择文字");
+        //    ObjectId lineId = doc.GetEntityOnScreen("请选择直线");
+
+        //    using (Transaction trans = db.TransactionManager.StartTransaction())
+        //    {
+        //        Entity textEnt = trans.GetObject(textId, OpenMode.ForWrite) as Entity;
+        //        Entity lineEnt = trans.GetObject(lineId, OpenMode.ForRead) as Entity;
+        //        if (textEnt?.GetType() == typeof(DBText) && lineEnt?.GetType() == typeof(Line))
+        //        {
+        //            Line line = lineEnt as Line;
+        //            DBText dbText = textEnt as DBText;
+        //            double rotation = Math.Asin(Math.Sin(line.Angle));
+
+        //        }
+        //        else if (textEnt?.GetType() == typeof(MText) && lineEnt?.GetType() == typeof(Line))
+        //        {
+
+        //        }
+        //    }
+        //}
     }
 }
