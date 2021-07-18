@@ -29,15 +29,17 @@ namespace GLTools
         [CommandMethod("CSCS")]
         public void test()
         {
-            try { 
-            BaseTools.PDFSplit("C:\\Files\\计算书.pdf", new string[] { "C:\\Files\\0.pdf", "C:\\Files\\1.pdf" });
+            try
+            {
+                double num = (double)ed.GetNumberOnScreen("请输入");
+                ed.WriteMessage(num.MileNumberToText("B"));
             }
             catch (System.Exception e)
             {
                 ed.WriteMessage(e.Message);
             }
         }
-        
+
         /// <summary>
         /// 管廊纵断面工具-标高及桩号初始化
         /// </summary>
@@ -494,7 +496,7 @@ namespace GLTools
 
             ss = doc.GetSelectionSet("请选择需要绘制配筋图的多段线", filterPline);
             offsetDistance = ed.GetNumberOnScreen("请输入保护层厚度: ");  // 偏移距离
-            if (ss != null && offsetDistance!=null)
+            if (ss != null && offsetDistance != null)
             {
                 using (Transaction trans = db.TransactionManager.StartTransaction())
                 {
@@ -511,7 +513,7 @@ namespace GLTools
                                 double plineArea = pline.Area;
                                 listPlineId.Add(obj.ObjectId);
                                 listPlineArea.Add(plineArea);
-                            }                            
+                            }
                         }
                     }
                     int indexMax = listPlineArea.IndexOf(listPlineArea.Max());
@@ -560,11 +562,11 @@ namespace GLTools
                             foreach (Point3d point in points)
                             {
                                 if (maxdata.VertexPoints.Contains(point) == false)
-                                { 
+                                {
                                     ObjectId newId = db.AddLineToModeSpace(p, point);
                                 }
                             }
-                            
+
                         }
                     }
 
@@ -572,14 +574,14 @@ namespace GLTools
                     foreach (ObjectId objId in listOffsetPlineId)
                     {
                         PLineData data = db.GetPLineData(objId);
-                        for(int i=0; i< data.VertexCount; i++)
+                        for (int i = 0; i < data.VertexCount; i++)
                         {
                             Point3d p = data.VertexPoints[i];
                             Vector3d v = data.Vectors[i];
-                            Line line = new Line(p, p+v);
+                            Line line = new Line(p, p + v);
                             Point3dCollection points = new Point3dCollection();
                             maxPline.IntersectWith(line, Intersect.ExtendBoth, new Plane(), points, IntPtr.Zero, IntPtr.Zero);
-                            ObjectId newId = db.AddLineToModeSpace(points[0], points[points.Count-1]);
+                            ObjectId newId = db.AddLineToModeSpace(points[0], points[points.Count - 1]);
                         }
                     }
 
@@ -620,7 +622,7 @@ namespace GLTools
                 while (ss != null && ss.Count == 4)
                 {
                     List<Point3d> interPoints = db.GetAllLineIntersection(ss);
-                    if(interPoints.Count()==4)
+                    if (interPoints.Count() == 4)
                     {
                         using (Transaction trans = db.TransactionManager.StartTransaction())
                         {
@@ -650,12 +652,13 @@ namespace GLTools
                                 new Point2d(p2.X, p2.Y), new Point2d(p3.X, p3.Y));
 
                                 Curve curveOffset = pline.GetOffsetCurves((double)offsetDistance)[0] as Curve;
-                                if (curveOffset.GetType() == typeof(Polyline)) {
+                                if (curveOffset.GetType() == typeof(Polyline))
+                                {
                                     Polyline plineOffset = curveOffset as Polyline;
                                     for (int i = 0; i < plineOffset.NumberOfVertices; i++)
                                     {
                                         Point3d p = plineOffset.GetPoint3dAt(i);
-                                        db.AddCircleToModeSpace(p, (double)offsetDistance/2);
+                                        db.AddCircleToModeSpace(p, (double)offsetDistance / 2);
                                     }
                                 }
                             }
@@ -669,18 +672,20 @@ namespace GLTools
             else if (offsetDistance != null && ss.Count > 4)
             {
                 double? maxdis = ed.GetNumberOnScreen("请输入最大壁厚或板厚: ");
-                if (maxdis != null) { 
+                if (maxdis != null)
+                {
                     List<Point3d> interPoints = db.GetAllLineIntersection(ss);
                     List<Point3d> assignedPoints = new List<Point3d> { };
                     List<Point3d[]> groupPoints = new List<Point3d[]> { };
                     foreach (Point3d p in interPoints)
                     {
-                        if (assignedPoints.Contains(p) == false) {
+                        if (assignedPoints.Contains(p) == false)
+                        {
                             List<Point3d> tempPoints = new List<Point3d> { };
                             foreach (Point3d subp in interPoints)
                             {
-                                if ((p.X==subp.X||p.Y==subp.Y)&&(p.GetDistanceBetweenTwoPoint(subp) < (double)maxdis)) tempPoints.Add(subp);
-                                else if ((p.X != subp.X && p.Y != subp.Y) && (p.GetDistanceBetweenTwoPoint(subp) < (double)maxdis*1.415)) tempPoints.Add(subp);
+                                if ((p.X == subp.X || p.Y == subp.Y) && (p.GetDistanceBetweenTwoPoint(subp) < (double)maxdis)) tempPoints.Add(subp);
+                                else if ((p.X != subp.X && p.Y != subp.Y) && (p.GetDistanceBetweenTwoPoint(subp) < (double)maxdis * 1.415)) tempPoints.Add(subp);
                             }
                             if (tempPoints.Count() == 4)
                             {
@@ -734,31 +739,103 @@ namespace GLTools
             }
         }
 
-        ///// <summary>
-        ///// 文字与直线对齐
-        ///// </summary>
-        //[CommandMethod("WZDX")]
-        //public void textAlignToLine()
-        //{
-        //    ObjectId textId = doc.GetEntityOnScreen("请选择文字");
-        //    ObjectId lineId = doc.GetEntityOnScreen("请选择直线");
+        /// <summary>
+        /// 文字与直线对齐
+        /// </summary>
+        [CommandMethod("WZDX")]
+        public void TextAlignToLine()
+        {
+            ObjectId textId = doc.GetEntityOnScreen("请选择文字");
 
-        //    using (Transaction trans = db.TransactionManager.StartTransaction())
-        //    {
-        //        Entity textEnt = trans.GetObject(textId, OpenMode.ForWrite) as Entity;
-        //        Entity lineEnt = trans.GetObject(lineId, OpenMode.ForRead) as Entity;
-        //        if (textEnt?.GetType() == typeof(DBText) && lineEnt?.GetType() == typeof(Line))
-        //        {
-        //            Line line = lineEnt as Line;
-        //            DBText dbText = textEnt as DBText;
-        //            double rotation = Math.Asin(Math.Sin(line.Angle));
+            Point3d pickPoint = new Point3d();
+            ObjectId lineId = doc.GetEntityOnScreen("请选择直线", out pickPoint);
 
-        //        }
-        //        else if (textEnt?.GetType() == typeof(MText) && lineEnt?.GetType() == typeof(Line))
-        //        {
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                Entity textEnt = trans.GetObject(textId, OpenMode.ForWrite) as Entity;
+                Entity lineEnt = trans.GetObject(lineId, OpenMode.ForRead) as Entity;
+                if (lineEnt?.GetType() == typeof(Line))
+                {
+                    Line line = lineEnt as Line;
+                    double angle = line.Angle;
 
-        //        }
-        //    }
-        //}
+                    if (textEnt?.GetType() == typeof(DBText))
+                    {
+                        DBText dbText = textEnt as DBText;
+                        dbText.Rotation = angle;    // 旋转文字
+                    }
+                    else if (textEnt?.GetType() == typeof(MText))
+                    {
+                        MText mText = textEnt as MText;
+                        mText.Rotation = angle;    // 旋转文字
+                    }
+                    else ed.WriteMessage("文字选择有误，请重新选择！");
+                }
+                else if (lineEnt?.GetType() == typeof(Polyline))
+                {
+                    Polyline pline = lineEnt as Polyline;
+                    Point3d p = pline.GetClosestPointTo(pickPoint, false);
+                    double angle = pline.GetFirstDerivative(p).GetAngleTo(Vector3d.XAxis);
+
+                    if (textEnt?.GetType() == typeof(DBText))
+                    {
+                        DBText dbText = textEnt as DBText;
+                        dbText.Rotation = angle;    // 旋转文字
+                    }
+                    else if (textEnt?.GetType() == typeof(MText))
+                    {
+                        MText mText = textEnt as MText;
+                        mText.Rotation = angle;    // 旋转文字
+                    }
+                    else ed.WriteMessage("文字选择有误，请重新选择！");
+                }
+
+                else ed.WriteMessage("直线选择有误，请重新选择！");
+
+                trans.Commit();
+            }
+        }
+
+        /// <summary>
+        /// 平面生成桩号
+        /// </summary>
+        [CommandMethod("ZHZH")]
+        public void CreateMileNum()
+        {
+            ObjectId lineId = doc.GetEntityOnScreen("请选择多段线");
+            string headStr = ed.GetStringOnScreen("请输入桩号头字符", "A");
+            int space = 100;
+            double halfLength = 0.625;
+            double textOff = 3;
+
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                Entity lineEnt = trans.GetObject(lineId, OpenMode.ForRead) as Entity;
+
+                if (lineEnt?.GetType() == typeof(Polyline))
+                {
+                    Polyline pline = lineEnt as Polyline;
+
+                    db.SetLayerCurrent("桩号标注", 3);    //图层
+                    db.SetTextStyleCurrent("SMEDI", "smsim.shx", "smfs.shx", 0.7);    //文字样式
+
+                    int n = (int)Math.Ceiling(pline.Length / space);    //分段数
+                    for(int i=0; i<n; i++)
+                    {
+                        Point3d p = pline.GetPointAtDist(i * space);
+                        Vector3d v = pline.GetFirstDerivative(p).GetPerpendicularVector().GetNormal();
+                        ObjectId sublineId = db.AddLineToModeSpace(p - halfLength * v, p + halfLength * v);
+                        Line subline = (trans.GetObject(sublineId, OpenMode.ForRead) as Entity) as Line;
+                        string text = ((double)(i*space)).MileNumberToText(headStr);
+                        db.AddTextToModeSpace(text, p + textOff * v, 3.5, subline.Angle, 0.7, "SMEDI",
+                            TextHorizontalMode.TextLeft, TextVerticalMode.TextVerticalMid);
+                    }
+                }
+
+                else ed.WriteMessage("多段线选择有误，请重新选择！");
+
+                trans.Commit();
+            }
+        }
     }
 }

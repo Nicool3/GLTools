@@ -337,13 +337,42 @@ namespace GLTools
                 {
                     using (var sourceDocument = new iTextSharp.text.Document(reader.GetPageSizeWithRotation(i)))
                     {
-                        var pdfCopyProvider = new PdfCopy(sourceDocument, new System.IO.FileStream(outFileArray[i-1], System.IO.FileMode.Create));
+                        var pdfCopyProvider = new PdfCopy(sourceDocument, new System.IO.FileStream(outFileArray[i - 1], System.IO.FileMode.Create));
                         sourceDocument.Open();
                         var importedPage = pdfCopyProvider.GetImportedPage(reader, i);
                         pdfCopyProvider.AddPage(importedPage);
                     }
                 }
             }
+        }
+
+        public static double MileTextToNumber(this string str)
+        {
+            if (str.Contains("K") && str.Contains("+"))
+            {
+                string[] mileStrArray = str.Split('K', '+');
+                double mile = Convert.ToDouble(mileStrArray[mileStrArray.Length - 2]) * 1000 + Convert.ToDouble(mileStrArray[mileStrArray.Length - 1]);
+                return mile;
+            }
+            return -1;
+        }
+
+        public static string MileNumberToText(this double num, string headStr = "")
+        {
+            double tailNum = num - (Math.Floor(num / 1000)) * 1000;
+            int mileNum = (int)Math.Floor(num / 1000);
+            string str = headStr + "K0+000";
+
+            if (Math.Abs(Math.Floor(tailNum) - tailNum) < 0.001)
+            {
+                str = headStr + "K" + mileNum.ToString() + "+" + tailNum.ToString("000");
+            }
+            else
+            {
+                str = headStr + "K" + mileNum.ToString() + "+" + tailNum.ToString("000.000");
+            }
+
+            return str;
         }
     }
 }
