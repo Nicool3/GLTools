@@ -155,6 +155,23 @@ namespace GLTools
         }
 
         /// <summary>
+        /// 获取实体
+        /// </summary>
+        public static Entity GetEntity(this ObjectId c1Id)
+        {
+            // 图形数据库
+            Database db = HostApplicationServices.WorkingDatabase;
+            // 开启事务处理
+            Entity ent1 = null;
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                ent1 = (Entity)trans.GetObject(c1Id, OpenMode.ForWrite);
+                trans.Commit();
+            }
+            return ent1;
+        }
+
+        /// <summary>
         /// 获取实体包围盒-选择集
         /// </summary>
         public static Point2d[] GetGeometricExtents(this Database db, SelectionSet sSet)

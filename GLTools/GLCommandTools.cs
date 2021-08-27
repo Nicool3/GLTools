@@ -15,7 +15,6 @@ using Autodesk.AutoCAD.EditorInput;
 
 namespace GLTools
 {
-
     public class GLCommandTools
     {
         // 获取当前文档和数据库
@@ -24,33 +23,11 @@ namespace GLTools
         Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
 
         /// <summary>
-        /// 测试
-        /// </summary>
-        [CommandMethod("CSCS")]
-        public void test()
-        {
-            try
-            {
-                double num = (double)ed.GetNumberOnScreen("请输入");
-                ed.WriteMessage(num.MileNumberToText("B"));
-            }
-            catch (System.Exception e)
-            {
-                ed.WriteMessage(e.Message);
-            }
-        }
-
-        /// <summary>
         /// 管廊纵断面工具-标高及桩号初始化
         /// </summary>
         [CommandMethod("GLCSH")]
-        public void ini_bg_and_zh()
+        public void Initialize()
         {
-            // 获取当前文档和数据库
-            Document doc = Application.DocumentManager.MdiActiveDocument;
-            Editor ed = doc.Editor;
-            Database db = doc.Database;
-
             // 判断是否已初始化, 如果已初始化判断是否覆盖
             bool overFlag = false;
             if (db.initialized())
@@ -71,9 +48,8 @@ namespace GLTools
         /// 管廊纵断面工具-两行数值相减
         /// </summary>
         [CommandMethod("SZXJ")]
-        public void text_minus()
+        public void MinusNumRow()
         {
-
             SelectionSet ss1 = null, ss2 = null, ss3 = null;
 
             // 文字过滤器
@@ -87,13 +63,10 @@ namespace GLTools
             ss1 = doc.GetSelectionSet("请选择被减列数字", selFtrText);
             if (ss1 != null) ss2 = doc.GetSelectionSet("请选择减列数字", selFtrText);
             if (ss2 != null) ss3 = doc.GetSelectionSet("请选择插入数字栏两侧边线", selFtrLine);
-
             if (ss1 != null && ss2 != null && ss3 != null && ss1.Count == ss2.Count && ss3.Count == 2)
             {
-
                 LineData l1 = db.GetLineData(ss3.GetObjectIds()[0]);
                 LineData l2 = db.GetLineData(ss3.GetObjectIds()[1]);
-
                 double insertpy = (l1.StartPoint.Y + l2.StartPoint.Y) / 2;
 
                 // 遍历选择集内的对象
@@ -122,10 +95,169 @@ namespace GLTools
         }
 
         /// <summary>
+        /// 管廊纵断面工具-拾取线生成桩号处管廊标高
+        /// </summary>
+        [CommandMethod("QXBG")]
+        public void CreateAltitudeAtLine()
+        {
+            if (db.initialized())
+            {
+                // 读取初始化数据
+                double Y1, BG1, SC_BG;
+                try
+                {
+                    Y1 = (double)db.ReadNumberFromNOD("Y1");
+                    BG1 = (double)db.ReadNumberFromNOD("BG1");
+                    SC_BG = (double)db.ReadNumberFromNOD("SC_BG");
+                }
+                catch (Autodesk.AutoCAD.Runtime.Exception e)
+                {
+                    throw e;
+                }
+
+                ObjectId GLLineId = doc.GetEntityOnScreen("请选择管廊线: ");
+                if (GLLineId != ObjectId.Null)
+                {
+                    SelectionSet ssVLine = doc.GetSelectionSet("请选择竖向网格线: ");
+                    if (ssVLine != null)
+                    {
+                        SelectionSet ss2 = doc.GetSelectionSet("请选择插入数字栏两侧边线");
+                        if (ss2 != null && ss2.Count == 2)
+                        {
+                            LineData l1 = db.GetLineData(ss2.GetObjectIds()[0]);
+                            LineData l2 = db.GetLineData(ss2.GetObjectIds()[1]);
+                            double insertpy = (l1.StartPoint.Y + l2.StartPoint.Y) / 2;
+
+                            foreach (ObjectId VLineId in ssVLine.GetObjectIds())
+                            {
+                                Point3d p = db.GetLineIntersection(GLLineId, VLineId);
+                                Point3d insertp = new Point3d(p.X, insertpy, 0);
+                                try
+                                {
+                                    double BG = BG1 + (p.Y - Y1) * SC_BG;
+                                    db.AddTextToModeSpace(BG.ToString("#.000"), insertp, 3.5, Math.PI * 0.5);
+                                }
+                                catch
+                                {
+                                    ed.WriteMessage("出现错误! ");
+                                }
+                            }
+                        }
+                        else ed.WriteMessage("数字栏两侧边线选择有误, 请重新选择! ");
+                    }
+                }
+            }
+            else
+            {
+                ed.WriteMessage("\n本图还未进行初始化, 请先对标高和桩号进行初始化");
+                return;
+            }
+        }
+
+        /// <summary>
+        /// 管廊纵断面工具-选点生成桩号和标高
+        /// </summary>
+        [CommandMethod("QDZHBG")]
+        public void CreateAltitudeMileAtPoint()
+        {
+            if (db.initialized())
+            {
+                // 读取初始化数据
+                double X1, Y1, BG1, ZH1, SC_BG, SC_ZH;
+                try
+                {
+                    Y1 = (double)db.ReadNumberFromNOD("Y1");
+                    X1 = (double)db.ReadNumberFromNOD("X1");
+                    BG1 = (double)db.ReadNumberFromNOD("BG1");
+                    ZH1 = (double)db.ReadNumberFromNOD("ZH1");
+                    SC_BG = (double)db.ReadNumberFromNOD("SC_BG");
+                    SC_ZH = (double)db.ReadNumberFromNOD("SC_ZH");
+                }
+                catch (Autodesk.AutoCAD.Runtime.Exception e)
+                {
+                    throw e;
+                }
+
+                bool outBG = false, outZH = false;
+                double ZHpy = 0, BGpy = 0;
+                SelectionSet ssBG = doc.GetSelectionSet("请选择插入标高栏两侧边线, 如无需插入标高则(ESC): ");
+                SelectionSet ssZH = doc.GetSelectionSet("请选择插入桩号栏两侧边线, 如无需插入桩号则(ESC): ");
+                if (ssBG != null)
+                {
+                    if (ssBG.Count == 2)
+                    {
+                        outBG = true;
+                        LineData BGl1 = db.GetLineData(ssBG.GetObjectIds()[0]);
+                        LineData BGl2 = db.GetLineData(ssBG.GetObjectIds()[1]);
+                        BGpy = (BGl1.StartPoint.Y + BGl2.StartPoint.Y) / 2;
+                    }
+                    else
+                    {
+                        ed.WriteMessage("标高栏两侧边线选择有误, 请重新选择! ");
+                        return;
+                    }
+                }
+                string ZHhead = "A";
+                if (ssZH != null)
+                {
+                    if (ssZH.Count == 2)
+                    {
+                        outZH = true;
+                        LineData ZHl1 = db.GetLineData(ssZH.GetObjectIds()[0]);
+                        LineData ZHl2 = db.GetLineData(ssZH.GetObjectIds()[1]);
+                        ZHpy = (ZHl1.StartPoint.Y + ZHl2.StartPoint.Y) / 2;
+                        ZHhead = ed.GetStringOnScreen("请输入桩号段字母(A/B/C...): ");
+                    }
+                    else ed.WriteMessage("桩号栏两侧边线选择有误, 请重新选择! ");
+                }
+
+                bool flag = true;
+                while (flag)
+                {
+                    Point3d? p0 = ed.GetPointOnScreen("请选择需要标注的点");
+                    if (p0 != null)
+                    {
+                        Point3d p = (Point3d)p0;
+                        double BG = Math.Round(BG1 + (p.Y - Y1) * SC_BG, 3);
+                        double ZH = Math.Round(ZH1 + (p.X - X1) * SC_ZH, 3);
+
+                        if (outBG)
+                        {
+                            string BGstr = BG.ToString("#.000");
+                            db.AddTextToModeSpace(BGstr, new Point3d(p.X, BGpy, p.Z), 3.5, Math.PI * 0.5);
+                        }
+                        if (outZH)
+                        {
+                            double ZHtail = ZH - (Math.Floor(ZH / 1000)) * 1000;
+                            int ZHmile = (int)Math.Floor(ZH / 1000);
+                            string ZHstr = ZHhead + "0+000";
+                            if (Math.Abs(Math.Floor(ZHtail) - ZHtail) < 0.001)
+                            {
+                                ZHstr = ZHhead + ZHmile.ToString() + "+" + ZHtail.ToString("000");
+                                db.AddTextToModeSpace(ZHstr, new Point3d(p.X, ZHpy, p.Z), 3.5, Math.PI * 0.5);
+                            }
+                            else
+                            {
+                                ZHstr = ZHhead + ZHmile.ToString() + "+" + ZHtail.ToString("000.000");
+                                db.AddTextToModeSpace(ZHstr, new Point3d(p.X, ZHpy, p.Z), 3.5, Math.PI * 0.5);
+                            }
+                        }
+                    }
+                    else flag = false;
+                }
+            }
+            else
+            {
+                ed.WriteMessage("\n本图还未进行初始化, 请先对标高和桩号进行初始化");
+                return;
+            }
+        }
+
+        /// <summary>
         /// 管廊平面工具-生成节点桩号表格
         /// </summary>
         [CommandMethod("JDZH")]
-        public void create_jd_zh()
+        public void CreateBuildingTable()
         {
             // 平面图中需将坐标系置为WCS
             ed.CurrentUserCoordinateSystem = Matrix3d.Identity;
@@ -245,171 +377,159 @@ namespace GLTools
         }
 
         /// <summary>
-        /// 管廊纵断面工具-拾取线生成桩号处管廊标高
+        /// 管廊平面图工具-文字与直线对齐
         /// </summary>
-        [CommandMethod("QXBG")]
-        public void create_bg_for_line()
+        [CommandMethod("WZDX")]
+        public void TextAlignToLine()
         {
-            if (db.initialized())
-            {
-                // 读取初始化数据
-                double Y1, BG1, SC_BG;
-                try
-                {
-                    Y1 = (double)db.ReadNumberFromNOD("Y1");
-                    BG1 = (double)db.ReadNumberFromNOD("BG1");
-                    SC_BG = (double)db.ReadNumberFromNOD("SC_BG");
-                }
-                catch (Autodesk.AutoCAD.Runtime.Exception e)
-                {
-                    throw e;
-                }
+            ObjectId textId = doc.GetEntityOnScreen("请选择文字");
 
-                ObjectId GLLineId = doc.GetEntityOnScreen("请选择管廊线: ");
-                if (GLLineId != ObjectId.Null)
+            Point3d pickPoint = new Point3d();
+            ObjectId lineId = doc.GetEntityOnScreen("请选择直线", out pickPoint);
+
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                Entity textEnt = trans.GetObject(textId, OpenMode.ForWrite) as Entity;
+                Entity lineEnt = trans.GetObject(lineId, OpenMode.ForRead) as Entity;
+                if (lineEnt?.GetType() == typeof(Line))
                 {
-                    SelectionSet ssVLine = doc.GetSelectionSet("请选择竖向网格线: ");
-                    if (ssVLine != null)
+                    Line line = lineEnt as Line;
+                    double angle = line.Angle;
+
+                    if (textEnt?.GetType() == typeof(DBText))
                     {
-                        SelectionSet ss2 = doc.GetSelectionSet("请选择插入数字栏两侧边线");
-                        if (ss2 != null && ss2.Count == 2)
-                        {
-                            LineData l1 = db.GetLineData(ss2.GetObjectIds()[0]);
-                            LineData l2 = db.GetLineData(ss2.GetObjectIds()[1]);
-                            double insertpy = (l1.StartPoint.Y + l2.StartPoint.Y) / 2;
-
-                            foreach (ObjectId VLineId in ssVLine.GetObjectIds())
-                            {
-                                Point3d p = db.GetLineIntersection(GLLineId, VLineId);
-                                Point3d insertp = new Point3d(p.X, insertpy, 0);
-                                try
-                                {
-                                    double BG = BG1 + (p.Y - Y1) * SC_BG;
-                                    db.AddTextToModeSpace(BG.ToString("#.000"), insertp, 3.5, Math.PI * 0.5);
-                                }
-                                catch
-                                {
-                                    ed.WriteMessage("出现错误! ");
-                                }
-                            }
-                        }
-                        else ed.WriteMessage("数字栏两侧边线选择有误, 请重新选择! ");
+                        DBText dbText = textEnt as DBText;
+                        dbText.Rotation = angle;    // 旋转文字
                     }
+                    else if (textEnt?.GetType() == typeof(MText))
+                    {
+                        MText mText = textEnt as MText;
+                        mText.Rotation = angle;    // 旋转文字
+                    }
+                    else ed.WriteMessage("文字选择有误，请重新选择！");
                 }
-            }
-            else
-            {
-                ed.WriteMessage("\n本图还未进行初始化, 请先对标高和桩号进行初始化");
-                return;
+                else if (lineEnt?.GetType() == typeof(Polyline))
+                {
+                    Polyline pline = lineEnt as Polyline;
+                    Point3d p = pline.GetClosestPointTo(pickPoint, false);
+                    double angle = pline.GetFirstDerivative(p).GetAngleTo(Vector3d.XAxis);
+
+                    if (textEnt?.GetType() == typeof(DBText))
+                    {
+                        DBText dbText = textEnt as DBText;
+                        dbText.Rotation = angle;    // 旋转文字
+                    }
+                    else if (textEnt?.GetType() == typeof(MText))
+                    {
+                        MText mText = textEnt as MText;
+                        mText.Rotation = angle;    // 旋转文字
+                    }
+                    else ed.WriteMessage("文字选择有误，请重新选择！");
+                }
+
+                else ed.WriteMessage("直线选择有误，请重新选择！");
+
+                trans.Commit();
             }
         }
 
         /// <summary>
-        /// 管廊纵断面工具-选点生成桩号和标高
+        /// 管线平面图工具-生成里程桩号
         /// </summary>
-        [CommandMethod("QDZHBG")]
-        public void bg_and_zh()
+        [CommandMethod("ZHZH")]
+        public void CreateMileNum()
         {
-            if (db.initialized())
+            ObjectId lineId = doc.GetEntityOnScreen("请选择多段线");
+            string headStr = ed.GetStringOnScreen("请输入桩号头字符", "A");
+            int space = 100;
+            double halfLength = 0.625;
+            double textOff = 3;
+
+            using (Transaction trans = db.TransactionManager.StartTransaction())
             {
-                // 读取初始化数据
-                double X1, Y1, BG1, ZH1, SC_BG, SC_ZH;
-                try
+                Entity lineEnt = trans.GetObject(lineId, OpenMode.ForRead) as Entity;
+
+                if (lineEnt?.GetType() == typeof(Polyline))
                 {
-                    Y1 = (double)db.ReadNumberFromNOD("Y1");
-                    X1 = (double)db.ReadNumberFromNOD("X1");
-                    BG1 = (double)db.ReadNumberFromNOD("BG1");
-                    ZH1 = (double)db.ReadNumberFromNOD("ZH1");
-                    SC_BG = (double)db.ReadNumberFromNOD("SC_BG");
-                    SC_ZH = (double)db.ReadNumberFromNOD("SC_ZH");
-                }
-                catch (Autodesk.AutoCAD.Runtime.Exception e)
-                {
-                    throw e;
+                    Polyline pline = lineEnt as Polyline;
+
+                    db.SetLayerCurrent("桩号标注", 3);    //图层
+                    db.SetTextStyleCurrent("SMEDI", "smsim.shx", "smfs.shx", 0.7);    //文字样式
+
+                    int n = (int)Math.Ceiling(pline.Length / space);    //分段数
+                    for (int i = 0; i < n; i++)
+                    {
+                        Point3d p = pline.GetPointAtDist(i * space);
+                        Vector3d v = pline.GetFirstDerivative(p).GetPerpendicularVector().GetNormal();
+                        ObjectId sublineId = db.AddLineToModeSpace(p - halfLength * v, p + halfLength * v);
+                        Line subline = (trans.GetObject(sublineId, OpenMode.ForRead) as Entity) as Line;
+                        string text = ((double)(i * space)).MileNumberToText(headStr);
+                        db.AddTextToModeSpace(text, p + textOff * v, 3.5, subline.Angle, 0.7, "SMEDI",
+                            TextHorizontalMode.TextLeft, TextVerticalMode.TextVerticalMid);
+                    }
                 }
 
-                bool outBG = false, outZH = false;
-                double ZHpy = 0, BGpy = 0;
-                SelectionSet ssBG = doc.GetSelectionSet("请选择插入标高栏两侧边线, 如无需插入标高则(ESC): ");
-                SelectionSet ssZH = doc.GetSelectionSet("请选择插入桩号栏两侧边线, 如无需插入桩号则(ESC): ");
-                if (ssBG != null)
-                {
-                    if (ssBG.Count == 2)
-                    {
-                        outBG = true;
-                        LineData BGl1 = db.GetLineData(ssBG.GetObjectIds()[0]);
-                        LineData BGl2 = db.GetLineData(ssBG.GetObjectIds()[1]);
-                        BGpy = (BGl1.StartPoint.Y + BGl2.StartPoint.Y) / 2;
-                    }
-                    else
-                    {
-                        ed.WriteMessage("标高栏两侧边线选择有误, 请重新选择! ");
-                        return;
-                    }
-                }
-                string ZHhead = "A";
-                if (ssZH != null)
-                {
-                    if (ssZH.Count == 2)
-                    {
-                        outZH = true;
-                        LineData ZHl1 = db.GetLineData(ssZH.GetObjectIds()[0]);
-                        LineData ZHl2 = db.GetLineData(ssZH.GetObjectIds()[1]);
-                        ZHpy = (ZHl1.StartPoint.Y + ZHl2.StartPoint.Y) / 2;
-                        ZHhead = ed.GetStringOnScreen("请输入桩号段字母(A/B/C...): ");
-                    }
-                    else ed.WriteMessage("桩号栏两侧边线选择有误, 请重新选择! ");
-                }
+                else ed.WriteMessage("多段线选择有误，请重新选择！");
 
-                bool flag = true;
-                while (flag)
-                {
-                    Point3d? p0 = ed.GetPointOnScreen("请选择需要标注的点");
-                    if (p0 != null)
-                    {
-                        Point3d p = (Point3d)p0;
-                        double BG = Math.Round(BG1 + (p.Y - Y1) * SC_BG, 3);
-                        double ZH = Math.Round(ZH1 + (p.X - X1) * SC_ZH, 3);
-
-                        if (outBG)
-                        {
-                            string BGstr = BG.ToString("#.000");
-                            db.AddTextToModeSpace(BGstr, new Point3d(p.X, BGpy, p.Z), 3.5, Math.PI * 0.5);
-                        }
-                        if (outZH)
-                        {
-                            double ZHtail = ZH - (Math.Floor(ZH / 1000)) * 1000;
-                            int ZHmile = (int)Math.Floor(ZH / 1000);
-                            string ZHstr = ZHhead + "0+000";
-                            if (Math.Abs(Math.Floor(ZHtail) - ZHtail) < 0.001)
-                            {
-                                ZHstr = ZHhead + ZHmile.ToString() + "+" + ZHtail.ToString("000");
-                                db.AddTextToModeSpace(ZHstr, new Point3d(p.X, ZHpy, p.Z), 3.5, Math.PI * 0.5);
-                            }
-                            else
-                            {
-                                ZHstr = ZHhead + ZHmile.ToString() + "+" + ZHtail.ToString("000.000");
-                                db.AddTextToModeSpace(ZHstr, new Point3d(p.X, ZHpy, p.Z), 3.5, Math.PI * 0.5);
-                            }
-                        }
-                    }
-                    else flag = false;
-                }
-            }
-            else
-            {
-                ed.WriteMessage("\n本图还未进行初始化, 请先对标高和桩号进行初始化");
-                return;
+                trans.Commit();
             }
         }
 
         /// <summary>
-        /// 文字镜像
+        /// 管线平面图工具-选点生成桩号
+        /// </summary>
+        [CommandMethod("ZHXD")]
+        public void CreateMileNumAtPoint()
+        {
+            ObjectId lineId = doc.GetEntityOnScreen("请选择多段线");
+            string headStr = ed.GetStringOnScreen("请输入桩号头字符", "A");
+            Point3d? startPoint = ed.GetPointOnScreen("选择起点");
+            string orient = ed.GetStringKeywordOnScreen("请输入朝向", "L", "左侧(L)", "R", "右侧(R)");
+
+            double halfLength = 0.625;
+            double textOff = 5.5;
+
+            Entity lineEnt = lineId.GetEntity();
+
+            if (lineEnt?.GetType() == typeof(Polyline))
+            {
+                Polyline pline = lineEnt as Polyline;
+                Point3d startp = pline.GetClosestPointTo((Point3d)startPoint, false);
+
+                db.SetLayerCurrent("桩号标注", 3);    //图层
+                db.SetTextStyleCurrent("SMEDI", "smsim.shx", "smfs.shx", 0.7);    //文字样式
+
+                Point3d? pickedPoint = ed.GetPointOnScreen("选择点");
+
+                while (pickedPoint != null)
+                {
+                    using (Transaction trans = db.TransactionManager.StartTransaction())
+                    {
+                        Point3d p = pline.GetClosestPointTo((Point3d)pickedPoint, false);
+                        Vector3d v = pline.GetFirstDerivative(p).GetPerpendicularVector().GetNormal();
+                        ObjectId sublineId = db.AddLineToModeSpace(p - halfLength * v, p + halfLength * v);
+                        Line subline = (trans.GetObject(sublineId, OpenMode.ForRead) as Entity) as Line;
+                        double distance = Math.Abs(pline.GetDistAtPoint(p) - pline.GetDistAtPoint(startp));
+                        string text = (distance).MileNumberToText(headStr);
+                        Point3d insertp = orient=="L"? p + textOff * v: p - textOff * v;
+                        double rot = orient == "L" ? subline.Angle : subline.Angle+Math.PI;
+                        db.AddTextToModeSpace(text, insertp, 3.5, rot, 0.7, "SMEDI",
+                            TextHorizontalMode.TextLeft, TextVerticalMode.TextVerticalMid);
+                        trans.Commit();
+                    }
+
+                    pickedPoint = ed.GetPointOnScreen("选择点");
+                }
+            }
+            else ed.WriteMessage("多段线选择有误，请重新选择！");
+        }
+
+        /// <summary>
+        /// 管廊标准断面工具-文字镜像
         /// </summary>
         [CommandMethod("WZJX")]
-        public void mirror_text_by_line()
+        public void MirrorTextByLine()
         {
-
             // 单行文字及直线过滤器
             List<string> lst = new List<string> { "TEXT", "LINE" };
             SelectionFilter selftr = lst.GetTypeFilter("OR");
@@ -477,15 +597,14 @@ namespace GLTools
                 {
                     ed.WriteMessage("\n所选元素方向不一致, 请重新选择! ");
                 }
-
             }
         }
 
         /// <summary>
-        /// 管廊配筋图绘制工具-选择壁板边界绘制剖面配筋图
+        /// 管廊标准断面工具-选择壁板边界绘制剖面配筋图
         /// </summary>
         [CommandMethod("PJT")]
-        public void PJT()
+        public void CreateReinSection()
         {
             SelectionSet ss = null;
             double? offsetDistance = null;
@@ -600,7 +719,7 @@ namespace GLTools
         }
 
         /// <summary>
-        /// 管廊配筋图绘制工具-绘制转角点筋
+        /// 管廊标准断面工具-绘制转角点筋
         /// </summary>
         [CommandMethod("DJDJ")]
         public void DJDJ()
@@ -736,105 +855,6 @@ namespace GLTools
                         }
                     }
                 }
-            }
-        }
-
-        /// <summary>
-        /// 文字与直线对齐
-        /// </summary>
-        [CommandMethod("WZDX")]
-        public void TextAlignToLine()
-        {
-            ObjectId textId = doc.GetEntityOnScreen("请选择文字");
-
-            Point3d pickPoint = new Point3d();
-            ObjectId lineId = doc.GetEntityOnScreen("请选择直线", out pickPoint);
-
-            using (Transaction trans = db.TransactionManager.StartTransaction())
-            {
-                Entity textEnt = trans.GetObject(textId, OpenMode.ForWrite) as Entity;
-                Entity lineEnt = trans.GetObject(lineId, OpenMode.ForRead) as Entity;
-                if (lineEnt?.GetType() == typeof(Line))
-                {
-                    Line line = lineEnt as Line;
-                    double angle = line.Angle;
-
-                    if (textEnt?.GetType() == typeof(DBText))
-                    {
-                        DBText dbText = textEnt as DBText;
-                        dbText.Rotation = angle;    // 旋转文字
-                    }
-                    else if (textEnt?.GetType() == typeof(MText))
-                    {
-                        MText mText = textEnt as MText;
-                        mText.Rotation = angle;    // 旋转文字
-                    }
-                    else ed.WriteMessage("文字选择有误，请重新选择！");
-                }
-                else if (lineEnt?.GetType() == typeof(Polyline))
-                {
-                    Polyline pline = lineEnt as Polyline;
-                    Point3d p = pline.GetClosestPointTo(pickPoint, false);
-                    double angle = pline.GetFirstDerivative(p).GetAngleTo(Vector3d.XAxis);
-
-                    if (textEnt?.GetType() == typeof(DBText))
-                    {
-                        DBText dbText = textEnt as DBText;
-                        dbText.Rotation = angle;    // 旋转文字
-                    }
-                    else if (textEnt?.GetType() == typeof(MText))
-                    {
-                        MText mText = textEnt as MText;
-                        mText.Rotation = angle;    // 旋转文字
-                    }
-                    else ed.WriteMessage("文字选择有误，请重新选择！");
-                }
-
-                else ed.WriteMessage("直线选择有误，请重新选择！");
-
-                trans.Commit();
-            }
-        }
-
-        /// <summary>
-        /// 平面生成桩号
-        /// </summary>
-        [CommandMethod("ZHZH")]
-        public void CreateMileNum()
-        {
-            ObjectId lineId = doc.GetEntityOnScreen("请选择多段线");
-            string headStr = ed.GetStringOnScreen("请输入桩号头字符", "A");
-            int space = 100;
-            double halfLength = 0.625;
-            double textOff = 3;
-
-            using (Transaction trans = db.TransactionManager.StartTransaction())
-            {
-                Entity lineEnt = trans.GetObject(lineId, OpenMode.ForRead) as Entity;
-
-                if (lineEnt?.GetType() == typeof(Polyline))
-                {
-                    Polyline pline = lineEnt as Polyline;
-
-                    db.SetLayerCurrent("桩号标注", 3);    //图层
-                    db.SetTextStyleCurrent("SMEDI", "smsim.shx", "smfs.shx", 0.7);    //文字样式
-
-                    int n = (int)Math.Ceiling(pline.Length / space);    //分段数
-                    for(int i=0; i<n; i++)
-                    {
-                        Point3d p = pline.GetPointAtDist(i * space);
-                        Vector3d v = pline.GetFirstDerivative(p).GetPerpendicularVector().GetNormal();
-                        ObjectId sublineId = db.AddLineToModeSpace(p - halfLength * v, p + halfLength * v);
-                        Line subline = (trans.GetObject(sublineId, OpenMode.ForRead) as Entity) as Line;
-                        string text = ((double)(i*space)).MileNumberToText(headStr);
-                        db.AddTextToModeSpace(text, p + textOff * v, 3.5, subline.Angle, 0.7, "SMEDI",
-                            TextHorizontalMode.TextLeft, TextVerticalMode.TextVerticalMid);
-                    }
-                }
-
-                else ed.WriteMessage("多段线选择有误，请重新选择！");
-
-                trans.Commit();
             }
         }
     }

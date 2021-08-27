@@ -101,6 +101,18 @@ namespace GLTools
         }
 
         /// <summary>
+        /// 获取多点的中点
+        /// </summary>
+        /// <returns></returns>
+        public static Point3d GetCenterPointFromPointList(this List<Point3d> pointList)
+        {
+            double x = pointList.Average(s => s.X);
+            double y = pointList.Average(s => s.Y);
+            double z = pointList.Average(s => s.Z);
+            return new Point3d(x, y, z);
+        }
+
+        /// <summary>
         /// 求两直线交点
         /// </summary>
         public static Point3d GetLineIntersection(this Database db, ObjectId LineId1, ObjectId LineId2)
