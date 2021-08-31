@@ -99,7 +99,7 @@
     <Compile Include="GetObjectTools.cs" />
     <Compile Include="GLCommandTools.cs" />
     <Compile Include="LayerStyleTools.cs" />
-    <Compile Include="MenuTools.cs" />
+    <None Include="MenuTools.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StructTools.cs" />
     <Compile Include="TableTools.cs" />

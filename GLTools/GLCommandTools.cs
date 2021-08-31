@@ -23,6 +23,34 @@ namespace GLTools
         Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
 
         /// <summary>
+        /// 测试
+        /// </summary>
+        [CommandMethod("CSCS")]
+        public void CSCS()
+        {
+            db.LoadLineType("CENTER");
+            // 判断当前空间是否为模型空间
+            // ed.WriteMessage(db.TileMode.ToString()+"\n");
+
+            // 获得当前视口标识码
+            // int nView = Convert.ToInt32(Application.GetSystemVariable("CVPORT"));
+            // ed.WriteMessage(nView.ToString());
+
+            // 获得角度
+            //Point2d pt1 = new Point2d(0, 0);
+            //Point2d pt2 = new Point2d(-5, -5);
+            //Application.ShowAlertDialog("Angle from XAxis: " + pt1.GetVectorTo(pt2).Angle.ToString());
+
+            // 指定点获得距离
+            //PromptDoubleResult pdr;
+            //pdr = ed.GetDistance("\nPick two points: ");
+            //Application.ShowAlertDialog("\nDistance between points: " + pdr.Value.ToString());
+
+            //doc.SendStringToExecute("._zoom _all ", true, false, false);
+
+        }
+
+        /// <summary>
         /// 管廊纵断面工具-标高及桩号初始化
         /// </summary>
         [CommandMethod("GLCSH")]

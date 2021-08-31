@@ -28,8 +28,10 @@ namespace GLTools
             {
                 // 打开块表
                 BlockTable bt = (BlockTable)trans.GetObject(db.BlockTableId, OpenMode.ForRead);
-                // 打开块表记录
-                BlockTableRecord btr = (BlockTableRecord)trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
+                // 打开模型空间块表记录
+                // BlockTableRecord btr = (BlockTableRecord)trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
+                // 打开当前空间块表记录
+                BlockTableRecord btr = (BlockTableRecord)trans.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
                 // 添加图形到块表记录
                 entId = btr.AppendEntity(ent);
                 // 更新数据信息
@@ -39,7 +41,6 @@ namespace GLTools
             }
             return entId;
         }
-
 
         /// <summary>
         /// 添加多个图形对象到图形文件中
@@ -56,16 +57,16 @@ namespace GLTools
             {
                 // 打开块表
                 BlockTable bt = (BlockTable)trans.GetObject(db.BlockTableId, OpenMode.ForRead);
-                // 打开块表记录
-                BlockTableRecord btr = (BlockTableRecord)trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
-
+                // 打开模型空间块表记录
+                // BlockTableRecord btr = (BlockTableRecord)trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
+                // 打开当前空间块表记录
+                BlockTableRecord btr = (BlockTableRecord)trans.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
                 for (int i = 0; i < ent.Length; i++)
                 {
                     // 将图形添加到块表记录
                     entId[i] = btr.AppendEntity(ent[i]);
                     // 更新数据信息
                     trans.AddNewlyCreatedDBObject(ent[i], true);
-
                 }
                 // 提交事务
                 trans.Commit();

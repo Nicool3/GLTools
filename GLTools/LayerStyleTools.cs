@@ -148,15 +148,33 @@ namespace GLTools
                     catch { return false; }
                 }
 
-                //获取名为TextStyleName的的文字样式表记录的Id
+                //获取名为LayerName的图层的Id
                 ObjectId layerId = lt[LayerName];
-                //指定当前文字样式
+                //指定当前图层
                 db.Clayer = layerId;
 
                 // 提交事务
                 trans.Commit();
             }
             return true;
-        }       
+        }
+
+        /// <summary>
+        /// 加载指定线型
+        /// </summary>
+        public static void LoadLineType(this Database db, string LineTypeName)
+        {
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                // 以读模式打开线型表
+                LinetypeTable ltt = (LinetypeTable)trans.GetObject(db.LinetypeTableId, OpenMode.ForRead);
+                if (ltt.Has(LineTypeName) == false)
+                {
+                    try { db.LoadLineTypeFile(LineTypeName, "acad.lin"); }
+                    catch { }
+                }
+                trans.Commit();
+            }
+        }
     }
 }
