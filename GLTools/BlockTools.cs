@@ -282,6 +282,48 @@ namespace GLTools
                 ed.WriteMessage(e.Message);
             }
         }
+
+
+        /// <summary>
+        /// 修改属性颜色
+        /// </summary>
+        [CommandMethod("SXZT")]
+        public void BlockAttColor()
+        {
+            // 获取当前文档和数据库
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+            string blocktype = "INSERT";
+            SelectionFilter selFtrBlock = blocktype.GetSingleTypeFilter();
+            SelectionSet ss = doc.GetSelectionSet("请选择对象", selFtrBlock);
+            if (ss != null)
+            {
+                using (Transaction trans = db.TransactionManager.StartTransaction())
+                {
+                    foreach (SelectedObject obj in ss)
+                    {
+                        BlockReference br = (BlockReference)obj.ObjectId.GetObject(OpenMode.ForWrite);
+                        if (br.Name!= null && br.Name == "gc200")
+                        {
+                            foreach (ObjectId item in br.AttributeCollection)
+                            {
+                                AttributeReference AttRef = (AttributeReference)item.GetObject(OpenMode.ForWrite);
+                                if (AttRef.Tag.ToString() == "height") 
+                                {
+                                    AttRef.TextStyleId = db.GetTextStyleId("SMEDI");
+                                    AttRef.Height = 2;
+                                    //ed.WriteMessage(AttRef.TextString);
+                                }
+                            }
+                        }
+                    }
+                    trans.Commit();
+                }
+            }
+
+        }
     }
 }
 
